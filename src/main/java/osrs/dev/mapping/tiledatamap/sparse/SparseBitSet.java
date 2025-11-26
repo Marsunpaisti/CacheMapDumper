@@ -1,4 +1,4 @@
-package VitaX.services.local.pathfinder.engine.collision;
+package osrs.dev.mapping.tiledatamap.sparse;
 
 /*- This software is the work of Paladin Software International, Incorporated,
  *  based upon previous work done for and by Sun Microsystems, Inc. */

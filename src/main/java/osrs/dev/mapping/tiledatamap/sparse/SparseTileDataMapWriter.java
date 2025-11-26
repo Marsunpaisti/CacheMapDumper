@@ -1,6 +1,5 @@
 package osrs.dev.mapping.tiledatamap.sparse;
 
-import VitaX.services.local.pathfinder.engine.collision.SparseBitSet;
 import osrs.dev.mapping.ICoordIndexer;
 import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
 
