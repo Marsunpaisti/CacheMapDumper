@@ -1,7 +1,7 @@
-package osrs.dev.tiletypemap;
+package osrs.dev.mapping.tiletypemap;
 
-import osrs.dev.dumper.ICoordIndexer;
-import osrs.dev.tiledatamap.ITileDataMap;
+import osrs.dev.mapping.ICoordIndexer;
+import osrs.dev.mapping.tiledatamap.ITileDataMap;
 
 /**
  * Generic tile type map backed by any ITileDataMap implementation.
@@ -24,7 +24,7 @@ public class TileTypeMap {
 
     public byte getTileType(int x, int y, int plane) {
         int data = 0;
-        for (int i = 0; i <= getIndexer().getMaxDataBitIndex(); i++) {
+        for (int i = 0; i <= getIndexer().getMaxAddressIndex(); i++) {
             if (isDataBitSet(x, y, plane, i)) {
                 data |= (1 << i);
             }

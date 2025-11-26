@@ -1,12 +1,13 @@
-package osrs.dev.collisionmap;
+package osrs.dev.mapping.collisionmap;
 
 import lombok.extern.slf4j.Slf4j;
-import osrs.dev.tiledatamap.ITileDataMap;
-import osrs.dev.tiledatamap.ITileDataMapWriter;
-import osrs.dev.tiledatamap.roaring.RoaringTileDataMap;
-import osrs.dev.tiledatamap.roaring.RoaringTileDataMapWriter;
-import osrs.dev.tiledatamap.sparse.SparseTileDataMap;
-import osrs.dev.tiledatamap.sparse.SparseTileDataMapWriter;
+import osrs.dev.mapping.CacheEfficientCoordIndexer;
+import osrs.dev.mapping.tiledatamap.ITileDataMap;
+import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
+import osrs.dev.mapping.tiledatamap.roaring.RoaringTileDataMap;
+import osrs.dev.mapping.tiledatamap.roaring.RoaringTileDataMapWriter;
+import osrs.dev.mapping.tiledatamap.sparse.SparseTileDataMap;
+import osrs.dev.mapping.tiledatamap.sparse.SparseTileDataMapWriter;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
@@ -45,7 +46,7 @@ public class CollisionMapFactory {
      * @return the loaded collision map
      * @throws Exception if loading fails
      */
-    public static CollisionMap load(String filePath) throws Exception {
+    public static ICollisionMap load(String filePath) throws Exception {
         File file = new File(filePath);
         if (!file.exists() || !file.isFile()) {
             System.err.println("File not found: " + filePath);
@@ -62,11 +63,11 @@ public class CollisionMapFactory {
             ITileDataMap dataMap;
             switch (format) {
                 case ROARING:
-                    dataMap = RoaringTileDataMap.load(inputStream);
+                    dataMap = RoaringTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
                     break;
                 case SPARSE_BITSET:
                 default:
-                    dataMap = SparseTileDataMap.load(inputStream);
+                    dataMap = SparseTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
                     break;
             }
             return new CollisionMap(dataMap);
@@ -113,11 +114,11 @@ public class CollisionMapFactory {
         ITileDataMapWriter dataMapWriter;
         switch (format) {
             case ROARING:
-                dataMapWriter = new RoaringTileDataMapWriter();
+                dataMapWriter = new RoaringTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
                 break;
             case SPARSE_BITSET:
             default:
-                dataMapWriter = new SparseTileDataMapWriter();
+                dataMapWriter = new SparseTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
                 break;
         }
         return new CollisionMapWriter(dataMapWriter);

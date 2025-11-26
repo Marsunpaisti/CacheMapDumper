@@ -2,7 +2,7 @@ package osrs.dev.util;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import osrs.dev.collisionmap.CollisionMapFactory;
+import osrs.dev.mapping.collisionmap.CollisionMapFactory;
 
 /**
  * Parses command line options.

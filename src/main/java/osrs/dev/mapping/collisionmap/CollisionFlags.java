@@ -1,4 +1,4 @@
-package osrs.dev.collisionmap;
+package osrs.dev.mapping.collisionmap;
 
 /**
  * A class containing flags for collision.

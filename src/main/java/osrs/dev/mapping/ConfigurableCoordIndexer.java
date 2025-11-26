@@ -1,4 +1,4 @@
-package osrs.dev.dumper;
+package osrs.dev.mapping;
 
 import lombok.Getter;
 
@@ -142,25 +142,30 @@ Z range: 0 to 3 (span: 4)
     }
 
     @Override
-    public int packToBitmapIndex(int x, int y, int plane, int dataBitPosition) {
-        return packCoordinate(x, y, plane) | packDataBitOffset(dataBitPosition);
+    public int packToBitmapIndex(int x, int y, int plane, int addressIndex) {
+        return packCoordinate(x, y, plane) | packAddressOffset(addressIndex);
+    }
+
+    @Override
+    public int getMaxAddressIndex() {
+        return maxDataBitIndex;
     }
 
     private int packCoordinate(int x, int y, int plane) {
         return packX(x) | packY(y) | packPlane(plane);
     }
 
-    private int packDataBitOffset(int dataBitPosition) {
+    private int packAddressOffset(int addressIndex) {
         if (isAdditionalValidationEnabled) {
-            if (dataBitPosition < 0 || dataBitPosition > maxDataBitIndex) {
+            if (addressIndex < 0 || addressIndex > maxDataBitIndex) {
                 throw new IllegalArgumentException(
-                        String.format("Data bit %d is outside available range [0, %d]", dataBitPosition, maxDataBitIndex)
+                        String.format("Address index %d is outside available range [0, %d]", addressIndex, maxDataBitIndex)
                 );
             }
         }
 
-        if (dataBitPosition == 0) return 0;
-        int indexMarkerBit = 1 << (totalCoordBits + dataBitPosition - 1);
+        if (addressIndex == 0) return 0;
+        int indexMarkerBit = 1 << (totalCoordBits + addressIndex - 1);
         // Returns an additional flag bit that's to be set to index data in a position past 0
         return indexMarkerBit;
     }

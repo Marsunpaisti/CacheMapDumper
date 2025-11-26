@@ -1,6 +1,6 @@
-package osrs.dev.tiledatamap;
+package osrs.dev.mapping.tiledatamap;
 
-import osrs.dev.dumper.ICoordIndexer;
+import osrs.dev.mapping.ICoordIndexer;
 
 /**
  * Read interface for generic tile data maps.
@@ -32,7 +32,7 @@ public interface ITileDataMap {
      */
     default byte getAllDataBits(int x, int y, int plane) {
         int data = 0;
-        for (int i = 0; i <= getIndexer().getMaxDataBitIndex(); i++) {
+        for (int i = 0; i <= getIndexer().getMaxAddressIndex(); i++) {
             if (isDataBitSet(x, y, plane, i)) {
                 data |= (1 << i);
             }

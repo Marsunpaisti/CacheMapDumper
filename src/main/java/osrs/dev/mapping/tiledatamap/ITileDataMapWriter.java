@@ -1,4 +1,4 @@
-package osrs.dev.tiledatamap;
+package osrs.dev.mapping.tiledatamap;
 
 import java.io.IOException;
 

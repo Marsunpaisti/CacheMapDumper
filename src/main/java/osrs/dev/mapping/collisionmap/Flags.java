@@ -1,4 +1,4 @@
-package osrs.dev.collisionmap;
+package osrs.dev.mapping.collisionmap;
 
 /**
  * Flags for the 8 directions.

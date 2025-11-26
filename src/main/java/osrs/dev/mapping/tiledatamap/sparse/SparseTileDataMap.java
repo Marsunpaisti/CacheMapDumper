@@ -1,9 +1,8 @@
-package osrs.dev.tiledatamap.sparse;
+package osrs.dev.mapping.tiledatamap.sparse;
 
 import VitaX.services.local.pathfinder.engine.collision.SparseBitSet;
-import osrs.dev.dumper.ConfigurableCoordIndexer;
-import osrs.dev.dumper.ICoordIndexer;
-import osrs.dev.tiledatamap.ITileDataMap;
+import osrs.dev.mapping.ICoordIndexer;
+import osrs.dev.mapping.tiledatamap.ITileDataMap;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,23 +13,23 @@ import java.io.ObjectInputStream;
  * Stores arbitrary data bits at tile coordinates using SparseBitSet.
  */
 public class SparseTileDataMap implements ITileDataMap {
-    static final ConfigurableCoordIndexer INDEXER
-            = ConfigurableCoordIndexer.SPARSEBITSET_4BIT_DATA_COORD_INDEXER;
+    private final ICoordIndexer indexer;
 
     private final SparseBitSet bitSet;
 
-    private SparseTileDataMap(SparseBitSet bitSet) {
+    private SparseTileDataMap(SparseBitSet bitSet, ICoordIndexer indexer) {
         this.bitSet = bitSet;
+        this.indexer = indexer;
     }
 
     @Override
     public ICoordIndexer getIndexer() {
-        return INDEXER;
+        return indexer;
     }
 
     @Override
     public boolean isDataBitSet(int x, int y, int plane, int dataBitIndex) {
-        int bitIndex = INDEXER.packToBitmapIndex(x, y, plane, dataBitIndex);
+        int bitIndex = indexer.packToBitmapIndex(x, y, plane, dataBitIndex);
         return bitSet.get(bitIndex);
     }
 
@@ -43,9 +42,9 @@ public class SparseTileDataMap implements ITileDataMap {
      * @throws IOException            On file read error.
      * @throws ClassNotFoundException On class not found.
      */
-    public static SparseTileDataMap load(InputStream inputStream) throws IOException, ClassNotFoundException {
+    public static SparseTileDataMap load(InputStream inputStream, ICoordIndexer indexer) throws IOException, ClassNotFoundException {
         try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-            return new SparseTileDataMap((SparseBitSet) objectInputStream.readObject());
+            return new SparseTileDataMap((SparseBitSet) objectInputStream.readObject(), indexer);
         }
     }
 }

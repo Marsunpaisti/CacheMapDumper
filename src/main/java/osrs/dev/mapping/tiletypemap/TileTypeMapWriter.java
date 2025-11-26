@@ -1,6 +1,6 @@
-package osrs.dev.tiletypemap;
+package osrs.dev.mapping.tiletypemap;
 
-import osrs.dev.tiledatamap.ITileDataMapWriter;
+import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
 
 import java.io.IOException;
 

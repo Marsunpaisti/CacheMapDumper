@@ -1,4 +1,4 @@
-package osrs.dev.tiletypemap;
+package osrs.dev.mapping.tiletypemap;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -72,5 +72,7 @@ public class TileType {
             .put(186, JAGGED_REEFS_WATER)
             .put(187, JAGGED_REEFS_WATER)
             .put(188, JAGGED_REEFS_WATER)
+            .put(189, JAGGED_REEFS_WATER)
+            .put(190, JAGGED_REEFS_WATER)
             .build();
 }

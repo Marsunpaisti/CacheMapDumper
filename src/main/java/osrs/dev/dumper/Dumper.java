@@ -18,12 +18,13 @@ import net.runelite.cache.region.Region;
 import net.runelite.cache.region.RegionLoader;
 import net.runelite.cache.util.KeyProvider;
 import net.runelite.cache.util.XteaKeyManager;
-import osrs.dev.collisionmap.CollisionMapFactory;
-import osrs.dev.collisionmap.CollisionMapWriter;
-import osrs.dev.tiletypemap.TileTypeMapFactory;
+import osrs.dev.mapping.ConfigurableCoordIndexer;
+import osrs.dev.mapping.collisionmap.CollisionMapFactory;
+import osrs.dev.mapping.collisionmap.CollisionMapWriter;
+import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.dumper.openrs2.OpenRS2;
-import osrs.dev.tiletypemap.TileType;
-import osrs.dev.tiletypemap.TileTypeMapWriter;
+import osrs.dev.mapping.tiletypemap.TileType;
+import osrs.dev.mapping.tiletypemap.TileTypeMapWriter;
 import osrs.dev.util.OptionsParser;
 import osrs.dev.util.ProgressBar;
 
@@ -81,7 +82,9 @@ public class Dumper
         this.objectManager = new ObjectManager(store);
         this.overlayManager = new OverlayManager(store);
         this.underlayManager = new UnderlayManager(store);
-        this.collisionMapWriter = CollisionMapFactory.createWriter(format);
+        this.collisionMapWriter = CollisionMapFactory.createWriter(
+                format
+        );
         // Convert CollisionMapFactory.Format to TileTypeMapFactory.Format
         TileTypeMapFactory.Format tileTypeFormat = format == CollisionMapFactory.Format.SPARSE_BITSET
                 ? TileTypeMapFactory.Format.SPARSE_BITSET
@@ -216,21 +219,6 @@ public class Dumper
             log.info("X range: {} to {} (span: {})", dumper.minX, dumper.maxX, dumper.maxX - dumper.minX + 1);
             log.info("Y range: {} to {} (span: {})", dumper.minY, dumper.maxY, dumper.maxY - dumper.minY + 1);
             log.info("Z range: {} to {} (span: {})", dumper.minZ, dumper.maxZ, dumper.maxZ - dumper.minZ + 1);
-
-            // Calculate bits needed for unsigned representation
-            int bitsX = 32 - Integer.numberOfLeadingZeros(dumper.maxX);
-            int bitsY = 32 - Integer.numberOfLeadingZeros(dumper.maxY);
-            int bitsZ = dumper.maxZ == 0 ? 1 : 32 - Integer.numberOfLeadingZeros(dumper.maxZ);
-            log.info("Bits needed (unsigned): X={}, Y={}, Z={}", bitsX, bitsY, bitsZ);
-
-            // If using signed representation (for relative offsets)
-            int maxAbsX = Math.max(Math.abs(dumper.minX), Math.abs(dumper.maxX));
-            int maxAbsY = Math.max(Math.abs(dumper.minY), Math.abs(dumper.maxY));
-            int maxAbsZ = Math.max(Math.abs(dumper.minZ), Math.abs(dumper.maxZ));
-            int bitsXSigned = maxAbsX == 0 ? 1 : 32 - Integer.numberOfLeadingZeros(maxAbsX) + 1; // +1 for sign
-            int bitsYSigned = maxAbsY == 0 ? 1 : 32 - Integer.numberOfLeadingZeros(maxAbsY) + 1;
-            int bitsZSigned = maxAbsZ == 0 ? 1 : 32 - Integer.numberOfLeadingZeros(maxAbsZ) + 1;
-            log.info("Bits needed (signed): X={}, Y={}, Z={}", bitsXSigned, bitsYSigned, bitsZSigned);
         }
         catch (ExecutionException | InterruptedException e)
         {

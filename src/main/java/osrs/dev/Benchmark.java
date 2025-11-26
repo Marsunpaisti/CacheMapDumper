@@ -1,8 +1,8 @@
 package osrs.dev;
 
 import lombok.extern.slf4j.Slf4j;
-import osrs.dev.collisionmap.CollisionMap;
-import osrs.dev.collisionmap.CollisionMapFactory;
+import osrs.dev.mapping.collisionmap.ICollisionMap;
+import osrs.dev.mapping.collisionmap.CollisionMapFactory;
 
 import java.io.File;
 
@@ -113,7 +113,7 @@ public class Benchmark
 
         // Measure baseline memory
         long baselineMemory = measureMemoryUsage();
-        CollisionMap map = CollisionMapFactory.load(mapFile.getAbsolutePath());
+        ICollisionMap map = CollisionMapFactory.load(mapFile.getAbsolutePath());
 
         // Measure memory after loading
         long loadedMemory = measureMemoryUsage();
@@ -145,7 +145,7 @@ public class Benchmark
     /**
      * Benchmark with random coordinate reads
      */
-    private static void benchmarkRandom(CollisionMap map) {
+    private static void benchmarkRandom(ICollisionMap map) {
         java.util.Random random = new java.util.Random(42);
 
         // Warmup phase
@@ -198,7 +198,7 @@ public class Benchmark
     /**
      * Benchmark with realistic coordinate reads
      */
-    private static void benchmarkRealistic(CollisionMap map) {
+    private static void benchmarkRealistic(ICollisionMap map) {
         java.util.Random random = new java.util.Random(42);
 
         // Warmup phase

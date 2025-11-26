@@ -1,6 +1,6 @@
-package osrs.dev.collisionmap;
+package osrs.dev.mapping.collisionmap;
 
-import osrs.dev.tiledatamap.ITileDataMapWriter;
+import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
 
 import java.io.IOException;
 

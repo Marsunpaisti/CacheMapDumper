@@ -1,41 +1,19 @@
-package osrs.dev.collisionmap;
+package osrs.dev.mapping.collisionmap;
 
-import osrs.dev.tiledatamap.ITileDataMap;
+public interface ICollisionMap {
+    boolean pathableNorth(int x, int y, int plane);
 
-/**
- * Generic collision map backed by any ITileDataMap implementation.
- * Maps NORTH and EAST direction bits with inverted semantics.
- *
- * Data bit SET = BLOCKED (cannot walk in that direction)
- * Interface returns pathable=true when bit is NOT set
- */
-public class CollisionMap {
-    static final int NORTH_DATA_BIT_POS = 0;
-    static final int EAST_DATA_BIT_POS = 1;
+    boolean pathableEast(int x, int y, int plane);
 
-    private final ITileDataMap dataMap;
-
-    public CollisionMap(ITileDataMap dataMap) {
-        this.dataMap = dataMap;
-    }
-
-    public boolean pathableNorth(int x, int y, int plane) {
-        return !dataMap.isDataBitSet(x, y, plane, NORTH_DATA_BIT_POS);
-    }
-
-    public boolean pathableEast(int x, int y, int plane) {
-        return !dataMap.isDataBitSet(x, y, plane, EAST_DATA_BIT_POS);
-    }
-
-    public boolean pathableSouth(int x, int y, int plane) {
+    default boolean pathableSouth(int x, int y, int plane) {
         return pathableNorth(x, y - 1, plane);
     }
 
-    public boolean pathableWest(int x, int y, int plane) {
+    default boolean pathableWest(int x, int y, int plane) {
         return pathableEast(x - 1, y, plane);
     }
 
-    public boolean isBlocked(int x, int y, int plane) {
+    default boolean isBlocked(int x, int y, int plane) {
         return !pathableNorth(x, y, plane)
                 && !pathableEast(x, y, plane)
                 && !pathableSouth(x, y, plane)
@@ -56,7 +34,7 @@ public class CollisionMap {
      *
      * @return byte with bits set for each pathable direction
      */
-    public byte all(int x, int y, int plane) {
+    default byte all(int x, int y, int plane) {
         byte n = pathableNorth(x, y, plane) ? (byte) 1 : 0;
         byte e = pathableEast(x, y, plane) ? (byte) 1 : 0;
         byte s = pathableSouth(x, y, plane) ? (byte) 1 : 0;

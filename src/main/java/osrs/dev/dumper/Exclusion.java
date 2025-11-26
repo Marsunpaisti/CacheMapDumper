@@ -1,6 +1,6 @@
 package osrs.dev.dumper;
 
-import osrs.dev.collisionmap.CollisionFlags;
+import osrs.dev.mapping.collisionmap.CollisionFlags;
 
 /**
  * An enumeration of object IDs that should be excluded from the collision map.

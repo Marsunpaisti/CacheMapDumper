@@ -1,30 +1,30 @@
-package osrs.dev.tiledatamap.roaring;
+package osrs.dev.mapping.tiledatamap.sparse;
 
-import org.roaringbitmap.RoaringBitmap;
-import osrs.dev.dumper.ConfigurableCoordIndexer;
-import osrs.dev.tiledatamap.ITileDataMapWriter;
+import VitaX.services.local.pathfinder.engine.collision.SparseBitSet;
+import osrs.dev.mapping.ICoordIndexer;
+import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
 
-import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Generic RoaringBitmap-based data map writer.
- * Writes arbitrary data bits at tile coordinates using RoaringBitmap.
+ * Generic SparseBitSet-based data map writer.
+ * Writes arbitrary data bits at tile coordinates using SparseBitSet.
  */
-public class RoaringTileDataMapWriter implements ITileDataMapWriter {
-    static final ConfigurableCoordIndexer INDEXER
-            = RoaringTileDataMap.INDEXER.withValidationEnabled();
-    private final RoaringBitmap bitmap;
+public class SparseTileDataMapWriter implements ITileDataMapWriter {
+    private final ICoordIndexer indexer;
+    private final SparseBitSet bitSet;
 
-    public RoaringTileDataMapWriter() {
-        this.bitmap = new RoaringBitmap();
+    public SparseTileDataMapWriter(ICoordIndexer indexer) {
+        this.bitSet = new SparseBitSet();
+        this.indexer = indexer;
     }
 
     @Override
     public synchronized void setDataBit(int x, int y, int plane, int dataBitIndex) {
-        bitmap.add(INDEXER.packToBitmapIndex(x, y, plane, dataBitIndex));
+        bitSet.set(indexer.packToBitmapIndex(x, y, plane, dataBitIndex));
     }
 
     @Override
@@ -43,13 +43,10 @@ public class RoaringTileDataMapWriter implements ITileDataMapWriter {
      * @throws IOException if saving fails
      */
     public void saveGzipped(String filePath) throws IOException {
-        bitmap.runOptimize();
-
         try (FileOutputStream fos = new FileOutputStream(filePath);
              GZIPOutputStream gzos = new GZIPOutputStream(fos);
-             DataOutputStream dos = new DataOutputStream(gzos)) {
-
-            bitmap.serialize(dos);
+             ObjectOutputStream oos = new ObjectOutputStream(gzos)) {
+            oos.writeObject(bitSet);
         }
     }
 
@@ -60,12 +57,9 @@ public class RoaringTileDataMapWriter implements ITileDataMapWriter {
      * @throws IOException if saving fails
      */
     public void saveWithoutGzip(String filePath) throws IOException {
-        bitmap.runOptimize();
-
         try (FileOutputStream fos = new FileOutputStream(filePath);
-             DataOutputStream dos = new DataOutputStream(fos)) {
-
-            bitmap.serialize(dos);
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(bitSet);
         }
     }
 }

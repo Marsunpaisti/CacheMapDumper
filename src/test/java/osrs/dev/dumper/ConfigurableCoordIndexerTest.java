@@ -2,6 +2,7 @@ package osrs.dev.dumper;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import osrs.dev.mapping.ConfigurableCoordIndexer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,15 +23,15 @@ class ConfigurableCoordIndexerTest {
     }
 
     @Test
-    @DisplayName("Constructor should calculate correct maxDataBitIndex")
-    void testConstructorCalculatesMaxDataBitIndex() {
-        // 32-bit capacity, 12+14+2=28 bits used, should have 4 data bits left
+    @DisplayName("Constructor should calculate correct maxAddressIndex")
+    void testConstructorCalculatesMaxAddressIndex() {
+        // 32-bit capacity, 12+14+2=28 bits used, should have 4 spare bits (max address index 4)
         ConfigurableCoordIndexer indexer32 = new ConfigurableCoordIndexer(32, false, 12, 0, 14, 0, 2, 0);
-        assertEquals(4, indexer32.getMaxDataBitIndex());
+        assertEquals(4, indexer32.getMaxAddressIndex());
 
-        // 31-bit capacity (signed), 12+14+2=28 bits used, should have 3 data bits left
+        // 31-bit capacity (signed), 12+14+2=28 bits used, should have 3 spare bits (max address index 3)
         ConfigurableCoordIndexer indexer31 = new ConfigurableCoordIndexer(31, false, 12, 0, 14, 0, 2, 0);
-        assertEquals(3, indexer31.getMaxDataBitIndex());
+        assertEquals(3, indexer31.getMaxAddressIndex());
     }
 
     @Test
@@ -120,25 +121,25 @@ class ConfigurableCoordIndexerTest {
     }
 
     @Test
-    @DisplayName("packToBitmapIndex with validation enabled should validate data bit position")
-    void testPackToBitmapIndexValidatesDataBitPosition() {
+    @DisplayName("packToBitmapIndex with validation enabled should validate address index")
+    void testPackToBitmapIndexValidatesAddressIndex() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, true, 12, 0, 14, 0, 2, 0);
 
-        // Valid data bit positions (0 to 4)
+        // Valid address indices (0 to 4)
         assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 0));
         assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 4));
 
-        // Data bit below minimum
+        // Address index below minimum
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
             indexer.packToBitmapIndex(0, 0, 0, -1)
         );
-        assertTrue(exception1.getMessage().contains("Data bit"));
+        assertTrue(exception1.getMessage().contains("Address index"));
 
-        // Data bit above maximum
+        // Address index above maximum
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
             indexer.packToBitmapIndex(0, 0, 0, 5)
         );
-        assertTrue(exception2.getMessage().contains("Data bit"));
+        assertTrue(exception2.getMessage().contains("Address index"));
     }
 
     @Test
@@ -246,8 +247,8 @@ class ConfigurableCoordIndexerTest {
         assertNotSame(indexer32, indexer31);
         assertEquals(32, indexer32.getMaxBitCapacity());
         assertEquals(31, indexer31.getMaxBitCapacity());
-        assertEquals(4, indexer32.getMaxDataBitIndex());
-        assertEquals(3, indexer31.getMaxDataBitIndex());
+        assertEquals(4, indexer32.getMaxAddressIndex());
+        assertEquals(3, indexer31.getMaxAddressIndex());
     }
 
     @Test
@@ -265,7 +266,7 @@ class ConfigurableCoordIndexerTest {
         assertEquals(32, indexer.getMaxBitCapacity());
         assertEquals(960, indexer.getMinX());
         assertEquals(1000, indexer.getMinY());
-        assertEquals(4, indexer.getMaxDataBitIndex());
+        assertEquals(4, indexer.getMaxAddressIndex());
     }
 
     @Test
@@ -283,21 +284,21 @@ class ConfigurableCoordIndexerTest {
     }
 
     @Test
-    @DisplayName("ROARINGBITMAP_5BIT_DATA_COORD_INDEXER should have 5 data bits")
+    @DisplayName("ROARINGBITMAP_5BIT_DATA_COORD_INDEXER should have max address index of 4")
     void testOptimizedPackingRoaringBitmap() {
         ConfigurableCoordIndexer indexer = ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER;
 
         assertEquals(32, indexer.getMaxBitCapacity());
-        assertEquals(4, indexer.getMaxDataBitIndex());
+        assertEquals(4, indexer.getMaxAddressIndex());
     }
 
     @Test
-    @DisplayName("SPARSEBITSET_4BIT_DATA_COORD_INDEXER should have 4 data bits")
+    @DisplayName("SPARSEBITSET_4BIT_DATA_COORD_INDEXER should have max address index of 3")
     void testOptimizedPackingSparsebitset() {
         ConfigurableCoordIndexer indexer = ConfigurableCoordIndexer.SPARSEBITSET_4BIT_DATA_COORD_INDEXER;
 
         assertEquals(31, indexer.getMaxBitCapacity());
-        assertEquals(3, indexer.getMaxDataBitIndex());
+        assertEquals(3, indexer.getMaxAddressIndex());
     }
 
     @Test
@@ -311,7 +312,7 @@ class ConfigurableCoordIndexerTest {
 
         assertTrue(modified.isAdditionalValidationEnabled());
         assertEquals(31, modified.getMaxBitCapacity());
-        assertEquals(3, modified.getMaxDataBitIndex());
+        assertEquals(3, modified.getMaxAddressIndex());
 
         assertFalse(original.isAdditionalValidationEnabled());
         assertEquals(32, original.getMaxBitCapacity());

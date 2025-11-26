@@ -3,11 +3,12 @@ package osrs.dev;
 import com.formdev.flatlaf.FlatDarkLaf;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import osrs.dev.collisionmap.CollisionMap;
-import osrs.dev.collisionmap.CollisionMapFactory;
+import osrs.dev.mapping.collisionmap.ICollisionMap;
+import osrs.dev.mapping.collisionmap.CollisionMapFactory;
 import osrs.dev.dumper.Dumper;
-import osrs.dev.tiletypemap.TileTypeMap;
-import osrs.dev.tiletypemap.TileTypeMapFactory;
+import osrs.dev.mapping.collisionmap.PaistiMap;
+import osrs.dev.mapping.tiletypemap.TileTypeMap;
+import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.ui.UIFrame;
 import osrs.dev.util.ConfigManager;
 import osrs.dev.util.ThreadPool;
@@ -21,7 +22,7 @@ import java.io.File;
 public class Main
 {
     @Getter
-    private static CollisionMap collision;
+    private static ICollisionMap collision;
     @Getter
     private static TileTypeMap tileTypeMap;
     @Getter

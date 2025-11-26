@@ -3,7 +3,7 @@ package osrs.dev.ui.viewport;
 import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import osrs.dev.Main;
-import osrs.dev.tiletypemap.TileType;
+import osrs.dev.mapping.tiletypemap.TileType;
 import osrs.dev.ui.ViewerMode;
 import osrs.dev.util.WorldPoint;
 import java.awt.*;
