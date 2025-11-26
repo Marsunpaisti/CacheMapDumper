@@ -18,23 +18,26 @@ import net.runelite.cache.region.Region;
 import net.runelite.cache.region.RegionLoader;
 import net.runelite.cache.util.KeyProvider;
 import net.runelite.cache.util.XteaKeyManager;
+import osrs.dev.dumper.openrs2.OpenRS2;
 import osrs.dev.mapping.ConfigurableCoordIndexer;
 import osrs.dev.mapping.collisionmap.CollisionMapFactory;
 import osrs.dev.mapping.collisionmap.CollisionMapWriter;
-import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
-import osrs.dev.dumper.openrs2.OpenRS2;
+import osrs.dev.mapping.collisionmap.ICollisionMap;
+import osrs.dev.mapping.collisionmap.PaistiMap;
 import osrs.dev.mapping.tiletypemap.TileType;
+import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.mapping.tiletypemap.TileTypeMapWriter;
+import osrs.dev.util.ConfigManager;
 import osrs.dev.util.OptionsParser;
 import osrs.dev.util.ProgressBar;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,8 +48,7 @@ import java.util.concurrent.Future;
  */
 @Getter
 @Slf4j
-public class Dumper
-{
+public class Dumper {
     public static File OUTPUT_MAP = new File(System.getProperty("user.home") + "/VitaX/map_roaring.dat.gz");
     public static File OUTPUT_TILE_TYPES = new File(System.getProperty("user.home") + "/VitaX/tile_types_roaring.dat.gz");
     public static final String COLLISION_DIR = System.getProperty("user.home") + "/VitaX/cachedumper/";
@@ -57,7 +59,10 @@ public class Dumper
     private final OverlayManager overlayManager;
     private final UnderlayManager underlayManager;
     private final CollisionMapWriter collisionMapWriter;
+    private final CollisionMapWriter waterMaskWriter;
     private final TileTypeMapWriter tileTypeMapWriter;
+    private final ICollisionMap paistiMap;
+    private final ICollisionMap waterTileMask;
 
     // Coordinate bounds tracking
     private int minX = Integer.MAX_VALUE;
@@ -66,6 +71,7 @@ public class Dumper
     private int maxY = Integer.MIN_VALUE;
     private int minZ = Integer.MAX_VALUE;
     private int maxZ = Integer.MIN_VALUE;
+    private long maskedTilesReadFromPaistiMap = 0;
 
     private static OptionsParser optionsParser;
     private static CollisionMapFactory.Format format = CollisionMapFactory.Format.ROARING;
@@ -73,11 +79,10 @@ public class Dumper
     /**
      * Creates a new dumper.
      *
-     * @param store the cache store
+     * @param store       the cache store
      * @param keyProvider the XTEA key provider
      */
-    public Dumper(Store store, KeyProvider keyProvider) throws IOException
-    {
+    public Dumper(Store store, KeyProvider keyProvider) throws IOException {
         this.regionLoader = new RegionLoader(store, keyProvider);
         this.objectManager = new ObjectManager(store);
         this.overlayManager = new OverlayManager(store);
@@ -90,6 +95,30 @@ public class Dumper
                 ? TileTypeMapFactory.Format.SPARSE_BITSET
                 : TileTypeMapFactory.Format.ROARING;
         this.tileTypeMapWriter = TileTypeMapFactory.createWriter(tileTypeFormat);
+
+        this.waterMaskWriter = CollisionMapFactory.createWriter(
+                CollisionMapFactory.Format.SPARSE_BITSET
+        );
+
+
+        ICollisionMap waterTilesMaskResult = null;
+        try {
+            waterTilesMaskResult = CollisionMapFactory.load(System.getProperty("user.home") + "/VitaX/water_mask_sparse.dat.gz");
+            log.info("Water tiles mask loaded successfully.");
+        } catch (Exception e) {
+            log.error("Failed to load water tiles mask", e);
+        }
+        ICollisionMap paistiMapResult = null;
+        try {
+            paistiMapResult = PaistiMap.load(System.getProperty("user.home") + "/VitaX/paisti_map_roaring.dat.gz");
+            log.info("Paisti map loaded successfully.");
+        } catch (Exception e) {
+            log.error("Failed to load Paisti map.", e);
+        }
+
+        this.paistiMap = paistiMapResult;
+        this.waterTileMask = waterTilesMaskResult;
+
         objectManager.load();
         overlayManager.load();
         underlayManager.load();
@@ -103,8 +132,7 @@ public class Dumper
      * @param id the id
      * @return the object definition, or {@code null} if not found
      */
-    private ObjectDefinition findObject(int id)
-    {
+    private ObjectDefinition findObject(int id) {
         return objectManager.getObject(id);
     }
 
@@ -114,8 +142,7 @@ public class Dumper
      * @param id the id
      * @return the overlay definition, or {@code null} if not found
      */
-    private OverlayDefinition findOverlay(int id)
-    {
+    private OverlayDefinition findOverlay(int id) {
         return overlayManager.provide(id);
     }
 
@@ -125,8 +152,7 @@ public class Dumper
      * @param id the id
      * @return the underlay definition, or {@code null} if not found
      */
-    private UnderlayDefinition findUnderlay(int id)
-    {
+    private UnderlayDefinition findUnderlay(int id) {
         return underlayManager.provide(id);
     }
 
@@ -136,8 +162,7 @@ public class Dumper
      * @param args the command-line arguments
      * @throws IOException if an I/O error occurs
      */
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         optionsParser = new OptionsParser(args);
         format = optionsParser.getFormat();
         OUTPUT_MAP = new File(optionsParser.getCollisionMapPath());
@@ -152,8 +177,7 @@ public class Dumper
         boolean fresh = optionsParser.isFreshCache();
         boolean emptyDir = isDirectoryEmpty(new File(COLLISION_DIR));
         boolean cacheDoesntExist = !(new File(COLLISION_DIR)).exists();
-        if(fresh || emptyDir || cacheDoesntExist)
-        {
+        if (fresh || emptyDir || cacheDoesntExist) {
             log.debug("Downloading fresh cache and XTEA keys (fresh={}, emptyDir={}, cacheDoesntExist={})", fresh, emptyDir, cacheDoesntExist);
             OpenRS2.update();
         }
@@ -178,8 +202,7 @@ public class Dumper
 
         File base = new File(CACHE_DIR);
 
-        try (Store store = new Store(base))
-        {
+        try (Store store = new Store(base)) {
             store.load();
 
             Dumper dumper = new Dumper(store, xteaKeyManager);
@@ -191,8 +214,7 @@ public class Dumper
             ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
             List<Future<Void>> futures = new ArrayList<>();
 
-            for (Region region : regions)
-            {
+            for (Region region : regions) {
                 futures.add(executor.submit(() ->
                 {
                     dumper.processRegion(region);
@@ -204,35 +226,36 @@ public class Dumper
 
             int n = 0;
             ProgressBar progressBar = new ProgressBar(total, 50);
-            for (Future<Void> future : futures)
-            {
+            for (Future<Void> future : futures) {
                 future.get(); // wait for task to complete
                 progressBar.update(++n);
             }
+
+            log.info("Masked tiles read from Paisti map: {}", dumper.maskedTilesReadFromPaistiMap);
             dumper.collisionMapWriter.save(OUTPUT_MAP.getPath());
             log.info("Wrote collision map to {}", OUTPUT_MAP.getPath());
             dumper.tileTypeMapWriter.save(OUTPUT_TILE_TYPES.getPath());
             log.info("Wrote tile type map to {}", OUTPUT_TILE_TYPES.getPath());
+            dumper.waterMaskWriter.save(new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
+            log.info("Wrote water mask to {}", new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
 
             // Log coordinate bounds and calculate bits needed
             log.info("=== COORDINATE BOUNDS ===");
             log.info("X range: {} to {} (span: {})", dumper.minX, dumper.maxX, dumper.maxX - dumper.minX + 1);
             log.info("Y range: {} to {} (span: {})", dumper.minY, dumper.maxY, dumper.maxY - dumper.minY + 1);
             log.info("Z range: {} to {} (span: {})", dumper.minZ, dumper.maxZ, dumper.maxZ - dumper.minZ + 1);
-        }
-        catch (ExecutionException | InterruptedException e)
-        {
+        } catch (ExecutionException | InterruptedException e) {
             System.err.println("Error processing region");
             e.printStackTrace();
         }
     }
+
     /**
      * Processes a region.
      *
      * @param region the region
      */
-    private void processRegion(Region region)
-    {
+    private void processRegion(Region region) {
         int baseX = region.getBaseX();
         int baseY = region.getBaseY();
         for (int z = 0; z < Region.Z; z++) {
@@ -430,10 +453,6 @@ public class Dumper
         }
     }
 
-    private void processArbitraryDataOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
-
-    }
-
     private void processTileTypesOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
         boolean isBridge = (region.getTileSetting(1, localX, localY) & 2) != 0;
         int tileZ = plane + (isBridge ? 1 : 0);
@@ -453,6 +472,14 @@ public class Dumper
         Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
         if (tileType != null && tileType > 0) {
             tileTypeMapWriter.setTileType(regionX, regionY, plane, tileType);
+
+            // Mark the 5x5 area around water tiles in the water mask
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dy = -2; dy <= 12; dy++) {
+                    waterMaskWriter.setPathableNorth(regionX, regionY, plane, false);
+                    waterMaskWriter.setPathableEast(regionX, regionY, plane, false);
+                }
+            }
         }
     }
 
@@ -460,10 +487,20 @@ public class Dumper
         boolean isBridge = (region.getTileSetting(1, localX, localY) & 2) != 0;
         int tileZ = plane + (isBridge ? 1 : 0);
 
+        // Keep some areas from Paisti's original map
+        if (paistiMap != null && PaistiMap.shouldKeepPaistiData(regionX, regionY, plane)) {
+            maskedTilesReadFromPaistiMap++;
+            // Read from paisti's map
+            boolean pathableNorth = paistiMap.pathableNorth(regionX, regionY, plane);
+            boolean pathableEast = paistiMap.pathableEast(regionX, regionY, plane);
+            collisionMapWriter.setPathableNorth(regionX, regionY, plane, pathableNorth);
+            collisionMapWriter.setPathableEast(regionX, regionY, plane, pathableEast);
+            return;
+        }
+
         for (Location loc : region.getLocations()) {
             Position pos = loc.getPosition();
-            if (pos.getX() != regionX || pos.getY() != regionY || pos.getZ() != tileZ)
-            {
+            if (pos.getX() != regionX || pos.getY() != regionY || pos.getZ() != tileZ) {
                 continue;
             }
 
@@ -471,8 +508,7 @@ public class Dumper
             int orientation = loc.getOrientation();
             ObjectDefinition object = findObject(loc.getId());
 
-            if (object == null)
-            {
+            if (object == null) {
                 continue;
             }
 
@@ -490,12 +526,9 @@ public class Dumper
             int sizeY = (orientation == 1 || orientation == 3) ? object.getSizeX() : object.getSizeY();
 
             // Handle walls and doors
-            if (type >= 0 && type <= 3)
-            {
-                if (type == 0 || type == 2)
-                {
-                    switch (orientation)
-                    {
+            if (type >= 0 && type <= 3) {
+                if (type == 0 || type == 2) {
+                    switch (orientation) {
                         case 0: // wall on west
                             collisionMapWriter.westBlocking(regionX, regionY, plane, block);
                             break;
@@ -513,41 +546,32 @@ public class Dumper
             }
 
             // Handle double walls
-            if (type == 2)
-            {
+            if (type == 2) {
                 if (orientation == 3) //west
                 {
                     collisionMapWriter.westBlocking(regionX, regionY, plane, block);
-                }
-                else if (orientation == 0) //north
+                } else if (orientation == 0) //north
                 {
                     collisionMapWriter.northBlocking(regionX, regionY, plane, block);
-                }
-                else if (orientation == 1) //east
+                } else if (orientation == 1) //east
                 {
                     collisionMapWriter.eastBlocking(regionX, regionY, plane, block);
-                }
-                else if (orientation == 2) //south
+                } else if (orientation == 2) //south
                 {
                     collisionMapWriter.southBlocking(regionX, regionY, plane, block);
                 }
             }
 
             // Handle diagonal walls (simplified)
-            if (type == 9)
-            {
+            if (type == 9) {
                 collisionMapWriter.fullBlocking(regionX, regionY, plane, block);
             }
 
             //objects
-            if (type == 22 || (type >= 9 && type <= 11) || (type >= 12 && type <= 21))
-            {
-                for (int x = 0; x < sizeX; x++)
-                {
-                    for (int y = 0; y < sizeY; y++)
-                    {
-                        if (object.getInteractType() != 0 && (object.getWallOrDoor() == 1 || (type >= 10 && type <= 21)))
-                        {
+            if (type == 22 || (type >= 9 && type <= 11) || (type >= 12 && type <= 21)) {
+                for (int x = 0; x < sizeX; x++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        if (object.getInteractType() != 0 && (object.getWallOrDoor() == 1 || (type >= 10 && type <= 21))) {
                             collisionMapWriter.fullBlocking(regionX + x, regionY + y, plane, block);
                         }
                     }
@@ -560,8 +584,7 @@ public class Dumper
         int overlayId = region.getOverlayId(plane < 3 ? tileZ : plane, localX, localY);
         boolean noFloor = underlayId == 0 && overlayId == 0;
 
-        if(noFloor)
-        {
+        if (noFloor) {
             collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
         }
 
@@ -571,8 +594,7 @@ public class Dumper
                 floorType == 3 || // bridge wall
                 floorType == 5 || // house wall/roof
                 floorType == 7 || // house wall
-                noFloor)
-        {
+                noFloor) {
             collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
         }
     }
@@ -582,13 +604,10 @@ public class Dumper
      *
      * @param dir the directory
      */
-    private static void ensureDirectory(String dir)
-    {
+    private static void ensureDirectory(String dir) {
         File file = new File(dir);
-        if (!file.exists())
-        {
-            if (!file.mkdirs())
-            {
+        if (!file.exists()) {
+            if (!file.mkdirs()) {
                 throw new RuntimeException("Unable to create directory " + dir);
             }
         }
