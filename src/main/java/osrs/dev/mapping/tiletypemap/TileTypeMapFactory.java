@@ -53,6 +53,22 @@ public class TileTypeMapFactory {
         }
 
         Format format = detectFormat(filePath);
+        return load(filePath, format);
+    }
+    /**
+     * Loads a tile type map, auto-detecting the format and handling gzip decompression.
+     *
+     * @param filePath path to the tile type map file
+     * @return the loaded tile type map
+     * @throws Exception if loading fails
+     */
+    public static TileTypeMap load(String filePath, Format format) throws Exception {
+        File file = new File(filePath);
+        if (!file.exists() || !file.isFile()) {
+            System.err.println("File not found: " + filePath);
+            return null;
+        }
+
         boolean gzipped = isGzipped(filePath);
         log.debug("Loading tile type map in format: {}, gzipped: {}", format, gzipped);
 
@@ -62,11 +78,11 @@ public class TileTypeMapFactory {
             ITileDataMap dataMap;
             switch (format) {
                 case ROARING:
-                    dataMap = RoaringTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_8_ADDRESSES);
+                    dataMap = RoaringTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_8_ADDRESSES.withValidationEnabled());
                     break;
                 case SPARSE_BITSET:
                 default:
-                    dataMap = SparseTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_8_ADDRESSES);
+                    dataMap = SparseTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_8_ADDRESSES.withValidationEnabled());
                     break;
             }
             return new TileTypeMap(dataMap);

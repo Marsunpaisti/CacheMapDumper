@@ -17,7 +17,7 @@ Z range: 0 to 3 (span: 4)
     /**
      * Optimized full packing: 12 bits X, 14 bits Y, 2 bits plane
      * using minimal amount of bits that can pack the full coordinate ranges of the game world.
-     * Can index up to 5 bits of data per coordinate (RoaringBitmap with 32 bit indexing supported).
+     * Can index up to 5 bits of addresses per coordinate (RoaringBitmap with 32 bit indexing supported).
      */
     public static final ConfigurableCoordIndexer ROARINGBITMAP_5BIT_DATA_COORD_INDEXER = new Builder()
             .maxBits(32)
@@ -30,7 +30,7 @@ Z range: 0 to 3 (span: 4)
     /**
      * Optimized full packing: 12 bits X, 14 bits Y, 2 bits plane
      * using minimal amount of bits that can pack the full coordinate ranges of the game world.
-     * Can index up to 4 bits of data per coordinate for SparseBitSet with only 31 bit indexing supported.
+     * Can index up to 4 bits of addresses per coordinate for SparseBitSet with only 31 bit indexing supported.
      */
     public static final ConfigurableCoordIndexer SPARSEBITSET_4BIT_DATA_COORD_INDEXER = new Builder()
             .maxBits(31)

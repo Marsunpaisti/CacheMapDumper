@@ -2,6 +2,7 @@ package osrs.dev.mapping.collisionmap;
 
 import lombok.extern.slf4j.Slf4j;
 import osrs.dev.mapping.CacheEfficientCoordIndexer;
+import osrs.dev.mapping.ConfigurableCoordIndexer;
 import osrs.dev.mapping.tiledatamap.ITileDataMap;
 import osrs.dev.mapping.tiledatamap.ITileDataMapWriter;
 import osrs.dev.mapping.tiledatamap.roaring.RoaringTileDataMap;
@@ -49,8 +50,7 @@ public class CollisionMapFactory {
     public static ICollisionMap load(String filePath) throws Exception {
         File file = new File(filePath);
         if (!file.exists() || !file.isFile()) {
-            System.err.println("File not found: " + filePath);
-            return null;
+           throw new FileNotFoundException("Collision map file not found: " + filePath);
         }
 
         Format format = detectFormat(filePath);
@@ -114,11 +114,11 @@ public class CollisionMapFactory {
         ITileDataMapWriter dataMapWriter;
         switch (format) {
             case ROARING:
-                dataMapWriter = new RoaringTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
+                dataMapWriter = new RoaringTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES.withValidationEnabled());
                 break;
             case SPARSE_BITSET:
             default:
-                dataMapWriter = new SparseTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
+                dataMapWriter = new SparseTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES.withValidationEnabled());
                 break;
         }
         return new CollisionMapWriter(dataMapWriter);

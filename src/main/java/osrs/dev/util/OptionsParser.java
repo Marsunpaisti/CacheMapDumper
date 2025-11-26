@@ -38,14 +38,19 @@ public class OptionsParser
         }
     }
 
-    /**
-     * Gets the collision map file path based on output directory and format.
-     */
-    public String getCollisionMapPath() {
+    public String getOutputDirBasePath() {
         String dir = outputDir;
         if (!dir.endsWith("/") && !dir.endsWith("\\")) {
             dir += "/";
         }
+        return dir;
+    }
+
+    /**
+     * Gets the collision map file path based on output directory and format.
+     */
+    public String getCollisionMapPath() {
+        String dir = getOutputDirBasePath();
         if (format == CollisionMapFactory.Format.SPARSE_BITSET) {
             return dir + "map_sparse.dat.gz";
         } else {
