@@ -31,7 +31,10 @@ import osrs.dev.util.ConfigManager;
 import osrs.dev.util.OptionsParser;
 import osrs.dev.util.ProgressBar;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -512,11 +515,43 @@ public class Dumper {
                 continue;
             }
 
-            boolean block = (Exclusion.matches(loc.getId()) == null)
-                    ? !(object.getName().toLowerCase().contains("door") || object.getName().toLowerCase().contains("gate"))
-                    : Boolean.FALSE.equals(Exclusion.matches(loc.getId()));
 
-            block = object.getName().toLowerCase().contains("trapdoor") || block;
+            Boolean exclusion = Exclusion.matches(loc.getId());
+            boolean isDoorLike = exclusion == null
+                    && (object.getName().toLowerCase().contains("door")
+                    || object.getName().toLowerCase().contains("gate")
+                    || object.getName().toLowerCase().contains("curtain"));
+            boolean isTrapdoor = object.getName().toLowerCase().contains("trapdoor");
+
+            boolean hasDoorLikeAction = false;
+            if (isDoorLike) {
+                var actions = object.getActions();
+                if (actions != null) {
+                    for (String action : actions) {
+                        if (action == null) continue;
+                        if (action.equalsIgnoreCase("Open")
+                                || action.equalsIgnoreCase("Close")
+                                || action.equalsIgnoreCase("Push")
+                                || action.equalsIgnoreCase("Push-through")
+                                || action.equalsIgnoreCase("Walk-through")
+                                || action.equalsIgnoreCase("Go-through")
+                                || action.equalsIgnoreCase("Pass")
+                                || action.equalsIgnoreCase("Escape")
+                                || action.equalsIgnoreCase("Quick-exit")) {
+                            hasDoorLikeAction = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            boolean consideredAsDoor = isDoorLike && hasDoorLikeAction;
+
+            boolean shouldBlock = exclusion != null
+                    ? Boolean.FALSE.equals(exclusion)
+                    : !consideredAsDoor;
+
+            shouldBlock = isTrapdoor || shouldBlock;
 
             if (Exclusion.matches(loc.getId()) != null && Boolean.TRUE.equals(Exclusion.matches(loc.getId()))) {
                 continue;
@@ -530,16 +565,16 @@ public class Dumper {
                 if (type == 0 || type == 2) {
                     switch (orientation) {
                         case 0: // wall on west
-                            collisionMapWriter.westBlocking(regionX, regionY, plane, block);
+                            collisionMapWriter.westBlocking(regionX, regionY, plane, shouldBlock);
                             break;
                         case 1: // wall on north
-                            collisionMapWriter.northBlocking(regionX, regionY, plane, block);
+                            collisionMapWriter.northBlocking(regionX, regionY, plane, shouldBlock);
                             break;
                         case 2: // wall on east
-                            collisionMapWriter.eastBlocking(regionX, regionY, plane, block);
+                            collisionMapWriter.eastBlocking(regionX, regionY, plane, shouldBlock);
                             break;
                         case 3: // wall on south
-                            collisionMapWriter.southBlocking(regionX, regionY, plane, block);
+                            collisionMapWriter.southBlocking(regionX, regionY, plane, shouldBlock);
                             break;
                     }
                 }
@@ -549,22 +584,22 @@ public class Dumper {
             if (type == 2) {
                 if (orientation == 3) //west
                 {
-                    collisionMapWriter.westBlocking(regionX, regionY, plane, block);
+                    collisionMapWriter.westBlocking(regionX, regionY, plane, shouldBlock);
                 } else if (orientation == 0) //north
                 {
-                    collisionMapWriter.northBlocking(regionX, regionY, plane, block);
+                    collisionMapWriter.northBlocking(regionX, regionY, plane, shouldBlock);
                 } else if (orientation == 1) //east
                 {
-                    collisionMapWriter.eastBlocking(regionX, regionY, plane, block);
+                    collisionMapWriter.eastBlocking(regionX, regionY, plane, shouldBlock);
                 } else if (orientation == 2) //south
                 {
-                    collisionMapWriter.southBlocking(regionX, regionY, plane, block);
+                    collisionMapWriter.southBlocking(regionX, regionY, plane, shouldBlock);
                 }
             }
 
             // Handle diagonal walls (simplified)
             if (type == 9) {
-                collisionMapWriter.fullBlocking(regionX, regionY, plane, block);
+                collisionMapWriter.fullBlocking(regionX, regionY, plane, shouldBlock);
             }
 
             //objects
@@ -572,7 +607,7 @@ public class Dumper {
                 for (int x = 0; x < sizeX; x++) {
                     for (int y = 0; y < sizeY; y++) {
                         if (object.getInteractType() != 0 && (object.getWallOrDoor() == 1 || (type >= 10 && type <= 21))) {
-                            collisionMapWriter.fullBlocking(regionX + x, regionY + y, plane, block);
+                            collisionMapWriter.fullBlocking(regionX + x, regionY + y, plane, shouldBlock);
                         }
                     }
                 }
