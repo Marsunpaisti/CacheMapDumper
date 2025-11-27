@@ -25,6 +25,8 @@ public class TileType {
             .put(131, WATER)
             .put(132, WATER)
             .put(133, WATER)
+            .put(134, WATER)
+            .put(135, TEMPOR_STORM_WATER)
             .put(136, TEMPOR_STORM_WATER)
             .put(137, TEMPOR_STORM_WATER)
             .put(138, TEMPOR_STORM_WATER)
