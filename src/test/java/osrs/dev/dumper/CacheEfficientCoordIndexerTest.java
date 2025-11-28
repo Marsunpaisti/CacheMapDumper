@@ -309,8 +309,8 @@ class CacheEfficientCoordIndexerTest {
     void testPredefinedIndexerHasContiguousIndices() {
         CacheEfficientCoordIndexer indexer = CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_8_ADDRESSES;
 
-        assertEquals(4, indexer.getAddressesPerCoordinate());
-        assertEquals(3, indexer.getMaxAddressIndex());
+        assertEquals(8, indexer.getAddressesPerCoordinate());
+        assertEquals(7, indexer.getMaxAddressIndex());
 
         // Test with a real coordinate
         int x = 1000, y = 3000, plane = 1;
