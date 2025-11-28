@@ -63,22 +63,40 @@ public class PaistiMap implements ICollisionMap {
     }
 
 
-    private static List<KeepArea> keepAreas = List.of(
+    private static final List<KeepArea> keepAreas = List.of(
             new KeepArea(2808, 2802, 2698, 2713, 0), // Ape Atoll
             new KeepArea(1626, 3522, 1710, 3600, 0), // Forthos Ruin
             new KeepArea(2446, 9733, 2526, 9703, 0), // UG Pass bridge area
             new KeepArea(2464, 9670, 2487, 9710, 0), // UG Pass spike puzzle area
             new KeepArea(2505, 3460, 2516, 3465, 0), // Baxtorian falls tile
-            new KeepArea(2684, 9030, 2291, 9318, 1) // Kruk Caves upper floor
+            new KeepArea(2684, 9030, 2291, 9318, 1)  // Kruk Caves upper floor
     );
 
-    public static boolean shouldKeepPaistiData(int x, int y, int plane) {
+    /**
+     * Check if the given coordinates fall within any of the defined Paisti 'keep areas'.
+     * I.e. the tile collision should be copied from the Paisti map instead of cache.
+     */
+    public boolean shouldKeepPaistiData(int x, int y, int plane) {
         for (KeepArea area : keepAreas) {
             if (area.contains(x, y, plane)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Override the tile collision data in the provided CollisionMapWriter
+     * if the tile is within the defined Paisti 'keep areas' to take from the paisti map.
+     */
+    public boolean overrideTileCollisionIfApplicable(CollisionMapWriter collisionMapWriter, int regionX, int regionY, int plane) {
+        if (!shouldKeepPaistiData(regionX, regionY, plane)) return false;
+
+        boolean pathableNorth = pathableNorth(regionX, regionY, plane);
+        boolean pathableEast = pathableEast(regionX, regionY, plane);
+        collisionMapWriter.setPathableNorth(regionX, regionY, plane, pathableNorth);
+        collisionMapWriter.setPathableEast(regionX, regionY, plane, pathableEast);
+        return true;
     }
 
     @Override

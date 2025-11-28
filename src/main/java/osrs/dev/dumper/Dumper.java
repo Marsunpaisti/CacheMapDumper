@@ -37,10 +37,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,7 +61,7 @@ public class Dumper {
     private final CollisionMapWriter collisionMapWriter;
     private final CollisionMapWriter waterMaskWriter;
     private final TileTypeMapWriter tileTypeMapWriter;
-    private final ICollisionMap paistiMap;
+    private final PaistiMap paistiMap;
     private final ICollisionMap waterTileMask;
 
     // Coordinate bounds tracking
@@ -111,7 +108,8 @@ public class Dumper {
         } catch (Exception e) {
             log.error("Failed to load water tiles mask", e);
         }
-        ICollisionMap paistiMapResult = null;
+
+        PaistiMap paistiMapResult = null;
         try {
             paistiMapResult = PaistiMap.load(System.getProperty("user.home") + "/VitaX/paisti_map_roaring.dat.gz");
             log.info("Paisti map loaded successfully.");
@@ -274,185 +272,10 @@ public class Dumper {
                     minZ = Math.min(minZ, z);
                     maxZ = Math.max(maxZ, z);
 
-                    // processDebugging(region, localX, localY, z, regionX, regionY);
                     processCollisionOfRegionCoordinate(region, localX, localY, z, regionX, regionY);
                     processTileTypesOfRegionCoordinate(region, localX, localY, z, regionX, regionY);
                 }
             }
-        }
-    }
-
-    private final Map<Integer, String> DEBUG_TILES = ImmutableMap.<Integer, String>builder()
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(2177, 3040, 0, 0), "Disease water 1")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(2177, 3043, 0, 0), "Disease water 2")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(3427, 2719, 0, 0), "Storm water 1")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(3427, 2715, 0, 0), "Storm water 2")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(3427, 2712, 0, 0), "Storm water 3")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(3427, 2707, 0, 0), "Storm water 4")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(3427, 2702, 0, 0), "Storm water 5")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(1799, 2366, 0, 0), "Kelp water 1")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(1799, 2364, 0, 0), "Kelp water 2")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(1799, 2362, 0, 0), "Kelp water 3")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(1799, 2358, 0, 0), "Kelp water 4")
-            .put(ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(1799, 2355, 0, 0), "Kelp water 5")
-            .build();
-
-
-    private void processDebugging(Region region, int localX, int localY, int plane, int regionX, int regionY) {
-        int packed = ConfigurableCoordIndexer.ROARINGBITMAP_5BIT_DATA_COORD_INDEXER.packToBitmapIndex(regionX, regionY, plane, 0);
-        if (!DEBUG_TILES.containsKey(packed)) {
-            return;
-        }
-
-        StringBuilder output = new StringBuilder();
-        String tileName = DEBUG_TILES.get(packed);
-
-        output.append("=== DEBUG TILE: ").append(tileName).append(" (").append(regionX).append(", ").append(regionY).append(", ").append(plane).append(") ===\n");
-        output.append("Local coords: (").append(localX).append(", ").append(localY).append(")\n");
-        output.append("Region base: (").append(region.getBaseX()).append(", ").append(region.getBaseY()).append(")\n");
-
-        // Bridge detection
-        boolean isBridge = (region.getTileSetting(1, localX, localY) & 2) != 0;
-        int tileZ = plane + (isBridge ? 1 : 0);
-        output.append("Is bridge: ").append(isBridge).append(", tileZ: ").append(tileZ).append("\n");
-
-        // Raw Region array values for the calculated tileZ
-        int effectivePlane = plane < 3 ? tileZ : plane;
-        output.append("RAW REGION VALUES (using effectivePlane=").append(effectivePlane).append(")\n");
-        output.append("  tileHeights[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getTileHeight(effectivePlane, localX, localY)).append("\n");
-        output.append("  tileSettings[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getTileSetting(effectivePlane, localX, localY)).append("\n");
-        output.append("  underlayIds[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getUnderlayId(effectivePlane, localX, localY)).append("\n");
-        output.append("  overlayIds[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getOverlayId(effectivePlane, localX, localY)).append("\n");
-        output.append("  overlayPaths[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getOverlayPath(effectivePlane, localX, localY)).append("\n");
-        output.append("  overlayRotations[").append(effectivePlane).append("][").append(localX).append("][").append(localY).append("] = ")
-                .append(region.getOverlayRotation(effectivePlane, localX, localY)).append("\n");
-
-        // Also log for all planes to show full context
-        output.append("RAW VALUES FOR ALL PLANES:\n");
-        for (int z = 0; z < 4; z++) {
-            output.append("  Plane ").append(z).append(": height=").append(region.getTileHeight(z, localX, localY))
-                    .append(", settings=").append(region.getTileSetting(z, localX, localY))
-                    .append(", underlay=").append(region.getUnderlayId(z, localX, localY))
-                    .append(", overlay=").append(region.getOverlayId(z, localX, localY))
-                    .append(", overlayPath=").append(region.getOverlayPath(z, localX, localY))
-                    .append(", overlayRot=").append(region.getOverlayRotation(z, localX, localY)).append("\n");
-        }
-
-        // Processed values
-        int floorType = region.getTileSetting(effectivePlane, localX, localY);
-        int underlayId = region.getUnderlayId(effectivePlane, localX, localY);
-        int overlayId = region.getOverlayId(effectivePlane, localX, localY);
-        boolean noFloor = underlayId == 0 && overlayId == 0;
-        output.append("PROCESSED: Floor type/settings: ").append(floorType).append(", No floor: ").append(noFloor).append("\n");
-
-        /*
-        // Underlay definition
-        if (underlayId > 0) {
-            UnderlayDefinition underlayDef = findUnderlay(underlayId - 1);
-            if (underlayDef != null) {
-                // Calculate HSL values to populate transient fields
-                underlayDef.calculateHsl();
-
-                output.append("UNDERLAY DEFINITION (ID ").append(underlayId).append("):\n");
-                output.append("  Color (RGB): ").append(underlayDef.getColor()).append("\n");
-                output.append("  Hue: ").append(underlayDef.getHue()).append("\n");
-                output.append("  Saturation: ").append(underlayDef.getSaturation()).append("\n");
-                output.append("  Lightness: ").append(underlayDef.getLightness()).append("\n");
-                output.append("  Hue Multiplier: ").append(underlayDef.getHueMultiplier()).append("\n");
-            } else {
-                output.append("UNDERLAY DEFINITION (ID ").append(underlayId).append("): Not found\n");
-            }
-        }
-        */
-        // Overlay definition
-        if (overlayId > 0) {
-            OverlayDefinition overlayDef = findOverlay(overlayId - 1);
-            if (overlayDef != null) {
-                // Calculate HSL values to populate transient fields
-                overlayDef.calculateHsl();
-
-                output.append("OVERLAY DEFINITION (ID ").append(overlayId).append("):\n");
-                output.append("  Id inside: ").append(overlayDef.getId()).append("\n");
-                output.append("  Texture/Sprite ID: ").append(overlayDef.getTexture()).append("\n");
-                output.append("  RGB Color: ").append(overlayDef.getRgbColor()).append("\n");
-                output.append("  Secondary RGB Color: ").append(overlayDef.getSecondaryRgbColor()).append("\n");
-                /*
-
-                output.append("  Hide Underlay: ").append(overlayDef.isHideUnderlay()).append("\n");
-                output.append("  Hue: ").append(overlayDef.getHue()).append("\n");
-                output.append("  Saturation: ").append(overlayDef.getSaturation()).append("\n");
-                output.append("  Lightness: ").append(overlayDef.getLightness()).append("\n");
-                output.append("  Other Hue (from secondary color): ").append(overlayDef.getOtherHue()).append("\n");
-                output.append("  Other Saturation (from secondary color): ").append(overlayDef.getOtherSaturation()).append("\n");
-                output.append("  Other Lightness (from secondary color): ").append(overlayDef.getOtherLightness()).append("\n");
-                 */
-            } else {
-                output.append("OVERLAY DEFINITION (ID ").append(overlayId).append("): Not found\n");
-            }
-        }
-
-        /*
-
-        // Objects on this tile
-        output.append("Objects on this tile:\n");
-        int objectCount = 0;
-        for (Location loc : region.getLocations()) {
-            Position pos = loc.getPosition();
-            if (pos.getX() != regionX || pos.getY() != regionY || pos.getZ() != tileZ) {
-                continue;
-            }
-
-            objectCount++;
-            ObjectDefinition object = findObject(loc.getId());
-
-            output.append("  Object #").append(objectCount).append(": ID=").append(loc.getId())
-                    .append(", Type=").append(loc.getType())
-                    .append(", Orientation=").append(loc.getOrientation()).append("\n");
-
-            if (object != null) {
-                boolean isExcluded = Exclusion.matches(loc.getId()) != null;
-                Boolean exclusionValue = Exclusion.matches(loc.getId());
-                boolean block = (exclusionValue == null)
-                        ? !(object.getName().toLowerCase().contains("door") || object.getName().toLowerCase().contains("gate"))
-                        : Boolean.FALSE.equals(exclusionValue);
-                block = object.getName().toLowerCase().contains("trapdoor") || block;
-
-                int sizeX = (loc.getOrientation() == 1 || loc.getOrientation() == 3) ? object.getSizeY() : object.getSizeX();
-                int sizeY = (loc.getOrientation() == 1 || loc.getOrientation() == 3) ? object.getSizeX() : object.getSizeY();
-
-                output.append("    Name: '").append(object.getName()).append("', Size: ").append(sizeX).append("x").append(sizeY)
-                        .append(", InteractType: ").append(object.getInteractType())
-                        .append(", WallOrDoor: ").append(object.getWallOrDoor()).append("\n");
-                output.append("    Block: ").append(block).append(", Excluded: ").append(isExcluded)
-                        .append(" (value: ").append(exclusionValue).append(")\n");
-            } else {
-                output.append("    Object definition not found\n");
-            }
-        }
-
-        if (objectCount == 0) {
-            output.append("  (No objects on this tile)\n");
-        }
-
-         */
-        output.append("=== END DEBUG TILE ===\n");
-
-        // Write to file
-        String debugDir = COLLISION_DIR + "/debug/";
-        ensureDirectory(debugDir);
-        String fileName = String.format("debug_%s_%d_%d_%d.txt", tileName.replaceAll("[^a-zA-Z0-9]", "_"), regionX, regionY, plane);
-        File debugFile = new File(debugDir + fileName);
-
-        try (java.io.FileWriter writer = new java.io.FileWriter(debugFile)) {
-            writer.write(output.toString());
-            log.info("Debug tile info written to: {}", debugFile.getAbsolutePath());
-        } catch (IOException e) {
-            log.error("Failed to write debug file for tile {} at ({}, {}, {})", tileName, regionX, regionY, plane, e);
         }
     }
 
@@ -487,17 +310,11 @@ public class Dumper {
     }
 
     private void processCollisionOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
-        boolean isBridge = (region.getTileSetting(1, localX, localY) & 2) != 0;
-        int tileZ = plane + (isBridge ? 1 : 0);
+        int tileZ = ProcessingUtils.getEffectiveTileZ(region, localX, localY, plane);
 
         // Keep some areas from Paisti's original map
-        if (paistiMap != null && PaistiMap.shouldKeepPaistiData(regionX, regionY, plane)) {
+        if (paistiMap != null && paistiMap.overrideTileCollisionIfApplicable(collisionMapWriter, regionX, regionY, plane)) {
             maskedTilesReadFromPaistiMap++;
-            // Read from paisti's map
-            boolean pathableNorth = paistiMap.pathableNorth(regionX, regionY, plane);
-            boolean pathableEast = paistiMap.pathableEast(regionX, regionY, plane);
-            collisionMapWriter.setPathableNorth(regionX, regionY, plane, pathableNorth);
-            collisionMapWriter.setPathableEast(regionX, regionY, plane, pathableEast);
             return;
         }
 
@@ -509,60 +326,34 @@ public class Dumper {
 
             int type = loc.getType();
             int orientation = loc.getOrientation();
-            ObjectDefinition object = findObject(loc.getId());
+            int objectId = loc.getId();
+            ObjectDefinition object = findObject(objectId);
 
             if (object == null) {
                 continue;
             }
+            Boolean exclusionRule = Exclusion.matches(objectId);
 
-
-            Boolean exclusion = Exclusion.matches(loc.getId());
-            boolean isDoorLike = exclusion == null
-                    && (object.getName().toLowerCase().contains("door")
-                    || object.getName().toLowerCase().contains("gate")
-                    || object.getName().toLowerCase().contains("curtain"));
-            boolean isTrapdoor = object.getName().toLowerCase().contains("trapdoor");
-
-            boolean hasDoorLikeAction = false;
-            if (isDoorLike) {
-                var actions = object.getActions();
-                if (actions != null) {
-                    for (String action : actions) {
-                        if (action == null) continue;
-                        if (action.equalsIgnoreCase("Open")
-                                || action.equalsIgnoreCase("Close")
-                                || action.equalsIgnoreCase("Push")
-                                || action.equalsIgnoreCase("Push-through")
-                                || action.equalsIgnoreCase("Walk-through")
-                                || action.equalsIgnoreCase("Go-through")
-                                || action.equalsIgnoreCase("Pass")
-                                || action.equalsIgnoreCase("Escape")
-                                || action.equalsIgnoreCase("Quick-exit")) {
-                            hasDoorLikeAction = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            boolean consideredAsDoor = isDoorLike && hasDoorLikeAction;
-
-            boolean shouldBlock = exclusion != null
-                    ? Boolean.FALSE.equals(exclusion)
-                    : !consideredAsDoor;
-
-            shouldBlock = isTrapdoor || shouldBlock;
-
-            if (Exclusion.matches(loc.getId()) != null && Boolean.TRUE.equals(Exclusion.matches(loc.getId()))) {
+            boolean explicitlyExcluded = exclusionRule != null && exclusionRule;
+            if (explicitlyExcluded) {
                 continue;
             }
 
-            int sizeX = (orientation == 1 || orientation == 3) ? object.getSizeY() : object.getSizeX();
-            int sizeY = (orientation == 1 || orientation == 3) ? object.getSizeX() : object.getSizeY();
+            // Skip objects that don't affect collision based on type and interactType
+            // unless explicitly included via Exclusion rules
+            boolean explicitlyIncluded = exclusionRule != null && !exclusionRule;
+            if (!explicitlyIncluded && ProcessingUtils.isNonClipping(objectId, type, object.getInteractType())) {
+                continue;
+            }
+
+            boolean shouldBlock = ProcessingUtils.shouldBlock(object, objectId);
+
+            int sizeX = ProcessingUtils.getRotatedSizeX(object, orientation);
+            int sizeY = ProcessingUtils.getRotatedSizeY(object, orientation);
 
             // Handle walls and doors
-            if (type >= 0 && type <= 3) {
-                if (type == 0 || type == 2) {
+            if (type >= MapObjectShape.WallStraight.getType() && type <= MapObjectShape.WallSquareCorner.getType()) {
+                if (type == MapObjectShape.WallStraight.getType() || type == MapObjectShape.WallL.getType()) {
                     switch (orientation) {
                         case 0: // wall on west
                             collisionMapWriter.westBlocking(regionX, regionY, plane, shouldBlock);
@@ -580,8 +371,8 @@ public class Dumper {
                 }
             }
 
-            // Handle double walls
-            if (type == 2) {
+            // Handle double walls, i.e the other direction of L-shaped walls
+            if (type == MapObjectShape.WallL.getType()) {
                 if (orientation == 3) //west
                 {
                     collisionMapWriter.westBlocking(regionX, regionY, plane, shouldBlock);
@@ -598,7 +389,7 @@ public class Dumper {
             }
 
             // Handle diagonal walls (simplified)
-            if (type == 9) {
+            if (type == MapObjectShape.WallDiagonal.getType()) {
                 collisionMapWriter.fullBlocking(regionX, regionY, plane, shouldBlock);
             }
 
@@ -614,22 +405,9 @@ public class Dumper {
             }
         }
 
-        // Handle tiles without a floor
-        int underlayId = region.getUnderlayId(plane < 3 ? tileZ : plane, localX, localY);
-        int overlayId = region.getOverlayId(plane < 3 ? tileZ : plane, localX, localY);
-        boolean noFloor = underlayId == 0 && overlayId == 0;
-
-        if (noFloor) {
-            collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
-        }
-
-        // Handle no-move tiles
-        int floorType = region.getTileSetting(plane < 3 ? tileZ : plane, localX, localY);
-        if (floorType == 1 || // water, rooftop wall
-                floorType == 3 || // bridge wall
-                floorType == 5 || // house wall/roof
-                floorType == 7 || // house wall
-                noFloor) {
+        // Handle tiles without a floor or with blocking floor types
+        int effectivePlane = ProcessingUtils.getEffectivePlane(region, localX, localY, plane);
+        if (ProcessingUtils.isNoFloorOrBlockingFloor(region, localX, localY, effectivePlane)) {
             collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
         }
     }

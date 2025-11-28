@@ -346,6 +346,7 @@ public enum Exclusion
     UNKNOWN_52601(52601, CollisionFlags.TILE_DEFAULT),
     UNKNOWN_52594(52594, CollisionFlags.TILE_DEFAULT),
     UNKNOWN_52596(52596, CollisionFlags.TILE_DEFAULT),
+
     ;
 
     /**
@@ -357,6 +358,7 @@ public enum Exclusion
      * Whether the exclusion tile should be blocked or empty
      */
     private final boolean tile;
+    private static final Exclusion[] VALUES = values();
 
     Exclusion(int id)
     {
@@ -371,7 +373,7 @@ public enum Exclusion
 
     public static Boolean matches(int id)
     {
-        for (Exclusion exclusion : values())
+        for (Exclusion exclusion : VALUES)
         {
             if (exclusion.id == id)
             {
