@@ -68,11 +68,12 @@ public class PaistiMap implements ICollisionMap {
             new KeepArea(1626, 3522, 1710, 3600, 0), // Forthos Ruin
             new KeepArea(2446, 9733, 2526, 9703, 0), // UG Pass bridge area
             new KeepArea(2464, 9670, 2487, 9710, 0), // UG Pass spike puzzle area
+            new KeepArea(2505, 3460, 2516, 3465, 0), // Baxtorian falls tile
             new KeepArea(2684, 9030, 2291, 9318, 1) // Kruk Caves upper floor
     );
 
     public static boolean shouldKeepPaistiData(int x, int y, int plane) {
-        for (KeepArea area : keepAreas) {;
+        for (KeepArea area : keepAreas) {
             if (area.contains(x, y, plane)) {
                 return true;
             }
