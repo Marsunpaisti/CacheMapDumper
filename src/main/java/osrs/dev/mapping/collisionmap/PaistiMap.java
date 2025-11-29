@@ -70,7 +70,10 @@ public class PaistiMap implements ICollisionMap {
             new KeepArea(2464, 9670, 2487, 9710, 0), // UG Pass spike puzzle area
             new KeepArea(2505, 3460, 2516, 3465, 0), // Baxtorian falls tile
             new KeepArea(2684, 9030, 2291, 9318, 1),  // Kruk Caves upper floor
-            new KeepArea(1629, 3123, 1669, 3093, 0) // Varlamore thieving area
+            new KeepArea(1629, 3123, 1669, 3093, 0), // Varlamore thieving area
+            new KeepArea(1790, 4790, 1835, 4865, 0), // Cabin fever quest boats plane 0
+            new KeepArea(1790, 4790, 1835, 4865, 1), // Cabin fever quest boats plane 1
+            new KeepArea(1790, 4790, 1835, 4865, 2) // Cabin fever quest boats plane 2
     );
 
     /**
