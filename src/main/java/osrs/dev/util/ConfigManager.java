@@ -42,7 +42,7 @@ public class ConfigManager
 
     /**
      * Constructs the collision map file path based on output directory and format.
-     * @param format "RoaringBitmap" or "SparseBitSet"
+     * @param format "RoaringBitmap", "SparseBitSet", or "SparseWordSet"
      * @return the full file path
      */
     public String getCollisionMapPath(String format) {
@@ -52,6 +52,8 @@ public class ConfigManager
         }
         if ("SparseBitSet".equalsIgnoreCase(format)) {
             return dir + "map_sparse.dat.gz";
+        } else if ("SparseWordSet".equalsIgnoreCase(format)) {
+            return dir + "map_wordset.dat.gz";
         } else {
             return dir + "map_roaring.dat.gz";
         }
@@ -69,6 +71,8 @@ public class ConfigManager
         }
         if ("SparseBitSet".equalsIgnoreCase(format)) {
             return dir + "tile_types_sparse.dat.gz";
+        } else if ("SparseWordSet".equalsIgnoreCase(format)) {
+            return dir + "tile_types_wordset.dat.gz";
         } else {
             return dir + "tile_types_roaring.dat.gz";
         }

@@ -290,7 +290,7 @@ public class UIFrame extends JFrame {
 
         // Add format selection combo box
         JLabel formatLabel = new JLabel("Serialization Format:");
-        formatComboBox = new JComboBox<>(new String[]{"RoaringBitmap", "SparseBitSet"});
+        formatComboBox = new JComboBox<>(new String[]{"RoaringBitmap", "SparseBitSet", "SparseWordSet"});
         formatComboBox.setSelectedItem(Main.getConfigManager().format());
         formatComboBox.addActionListener(e -> Main.getConfigManager().setFormat((String) formatComboBox.getSelectedItem()));
         inputPanel.add(formatLabel);

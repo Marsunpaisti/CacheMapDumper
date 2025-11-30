@@ -91,9 +91,18 @@ public class Dumper {
                 format
         );
         // Convert CollisionMapFactory.Format to TileTypeMapFactory.Format
-        TileTypeMapFactory.Format tileTypeFormat = format == CollisionMapFactory.Format.SPARSE_BITSET
-                ? TileTypeMapFactory.Format.SPARSE_BITSET
-                : TileTypeMapFactory.Format.ROARING;
+        TileTypeMapFactory.Format tileTypeFormat;
+        switch (format) {
+            case SPARSE_BITSET:
+                tileTypeFormat = TileTypeMapFactory.Format.SPARSE_BITSET;
+                break;
+            case SPARSE_WORDSET:
+                tileTypeFormat = TileTypeMapFactory.Format.SPARSE_WORDSET;
+                break;
+            default:
+                tileTypeFormat = TileTypeMapFactory.Format.ROARING;
+                break;
+        }
         this.tileTypeMapWriter = TileTypeMapFactory.createWriter(tileTypeFormat);
 
         this.waterMaskWriter = CollisionMapFactory.createWriter(

@@ -9,6 +9,9 @@ import osrs.dev.mapping.tiledatamap.roaring.RoaringTileDataMap;
 import osrs.dev.mapping.tiledatamap.roaring.RoaringTileDataMapWriter;
 import osrs.dev.mapping.tiledatamap.sparse.SparseTileDataMap;
 import osrs.dev.mapping.tiledatamap.sparse.SparseTileDataMapWriter;
+import osrs.dev.mapping.tiledatamap.sparse.SparseWordTileDataMap;
+import osrs.dev.mapping.tiledatamap.sparse.SparseWordTileDataMapWriter;
+import osrs.dev.mapping.DirectCoordPacker;
 
 import java.io.*;
 import java.util.zip.GZIPInputStream;
@@ -29,6 +32,12 @@ public class CollisionMapFactory {
          * Detected by "sparse" in the filename.
          */
         SPARSE_BITSET,
+
+        /**
+         * SparseWordSet format - stores N-bit values per coordinate.
+         * Detected by "wordset" in the filename.
+         */
+        SPARSE_WORDSET,
 
         /**
          * RoaringBitmap format.
@@ -65,6 +74,9 @@ public class CollisionMapFactory {
                 case ROARING:
                     dataMap = RoaringTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
                     break;
+                case SPARSE_WORDSET:
+                    dataMap = SparseWordTileDataMap.load(inputStream, DirectCoordPacker.STANDARD);
+                    break;
                 case SPARSE_BITSET:
                 default:
                     dataMap = SparseTileDataMap.load(inputStream, CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES);
@@ -86,6 +98,9 @@ public class CollisionMapFactory {
 
         if (lowerPath.contains("roaring")) {
             return Format.ROARING;
+        } else if (lowerPath.contains("wordset")) {
+            // Check "wordset" before "sparse" since it's more specific
+            return Format.SPARSE_WORDSET;
         } else if (lowerPath.contains("sparse")) {
             return Format.SPARSE_BITSET;
         }
@@ -115,6 +130,9 @@ public class CollisionMapFactory {
         switch (format) {
             case ROARING:
                 dataMapWriter = new RoaringTileDataMapWriter(CacheEfficientCoordIndexer.SEQUENTIAL_COORD_INDEXER_2_ADDRESSES.withValidationEnabled());
+                break;
+            case SPARSE_WORDSET:
+                dataMapWriter = new SparseWordTileDataMapWriter(4, DirectCoordPacker.STANDARD);
                 break;
             case SPARSE_BITSET:
             default:

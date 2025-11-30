@@ -28,6 +28,8 @@ public class OptionsParser
                     String formatStr = args[++i];
                     if ("SparseBitSet".equalsIgnoreCase(formatStr)) {
                         format = CollisionMapFactory.Format.SPARSE_BITSET;
+                    } else if ("SparseWordSet".equalsIgnoreCase(formatStr)) {
+                        format = CollisionMapFactory.Format.SPARSE_WORDSET;
                     } else if ("RoaringBitmap".equalsIgnoreCase(formatStr)) {
                         format = CollisionMapFactory.Format.ROARING;
                     } else {
@@ -53,6 +55,8 @@ public class OptionsParser
         String dir = getOutputDirBasePath();
         if (format == CollisionMapFactory.Format.SPARSE_BITSET) {
             return dir + "map_sparse.dat.gz";
+        } else if (format == CollisionMapFactory.Format.SPARSE_WORDSET) {
+            return dir + "map_wordset.dat.gz";
         } else {
             return dir + "map_roaring.dat.gz";
         }
@@ -68,6 +72,8 @@ public class OptionsParser
         }
         if (format == CollisionMapFactory.Format.SPARSE_BITSET) {
             return dir + "tile_types_sparse.dat.gz";
+        } else if (format == CollisionMapFactory.Format.SPARSE_WORDSET) {
+            return dir + "tile_types_wordset.dat.gz";
         } else {
             return dir + "tile_types_roaring.dat.gz";
         }
