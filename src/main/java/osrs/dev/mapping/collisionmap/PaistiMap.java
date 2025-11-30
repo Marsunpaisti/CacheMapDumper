@@ -46,6 +46,27 @@ public class PaistiMap implements ICollisionMap {
         return new PaistiMap(map);
     }
 
+    public static PaistiMap loadFromResource() throws IOException {
+        InputStream resourceStream = PaistiMap.class.getResourceAsStream("paisti_map_roaring.dat.gz");
+        if (resourceStream == null) {
+            throw new IOException("Resource not found: paisti_map_roaring.dat.gz");
+        }
+
+        ITileDataMap map;
+        try (InputStream inputStream = new GZIPInputStream(resourceStream)) {
+            map = RoaringTileDataMap.load(
+                    inputStream,
+                    ConfigurableCoordIndexer.builder()
+                            .xBits(14)
+                            .yBits(14)
+                            .planeBits(2)
+                            .build()
+            );
+        }
+
+        return new PaistiMap(map);
+    }
+
     private static class KeepArea {
         final int minX, minY, maxX, maxY, plane;
 

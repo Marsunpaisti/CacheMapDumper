@@ -111,7 +111,7 @@ public class Dumper {
 
         PaistiMap paistiMapResult = null;
         try {
-            paistiMapResult = PaistiMap.load(System.getProperty("user.home") + "/VitaX/paisti_map_roaring.dat.gz");
+            paistiMapResult = PaistiMap.loadFromResource();
             log.info("Paisti map loaded successfully.");
         } catch (Exception e) {
             log.error("Failed to load Paisti map.", e);
