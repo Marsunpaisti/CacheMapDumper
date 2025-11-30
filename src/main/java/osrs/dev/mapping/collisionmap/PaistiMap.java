@@ -99,8 +99,7 @@ public class PaistiMap implements ICollisionMap {
             new KeepArea(1629, 3123, 1669, 3093, 0), // Varlamore thieving area
             new KeepArea(1790, 4790, 1835, 4865, 0), // Cabin fever quest boats plane 0
             new KeepArea(1790, 4790, 1835, 4865, 1), // Cabin fever quest boats plane 1
-            new KeepArea(1790, 4790, 1835, 4865, 2), // Cabin fever quest boats plane 2,
-            new KeepArea(2380, 9809, 2411, 9830, 0)  // Brimstails cave
+            new KeepArea(1790, 4790, 1835, 4865, 2) // Cabin fever quest boats plane 2
     );
 
     /**
