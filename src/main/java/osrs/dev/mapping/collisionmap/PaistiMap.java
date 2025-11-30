@@ -85,7 +85,7 @@ public class PaistiMap implements ICollisionMap {
 
 
     private static final List<KeepArea> keepAreas = List.of(
-            new KeepArea(2808, 2802, 2698, 2713, 0), // Ape Atoll
+            new KeepArea(2808, 2802, 2765, 2723, 0), // Ape Atoll east
             new KeepArea(1626, 3522, 1710, 3600, 0), // Forthos Ruin
             new KeepArea(2446, 9733, 2526, 9703, 0), // UG Pass bridge area
             new KeepArea(2464, 9670, 2487, 9710, 0), // UG Pass spike puzzle area
