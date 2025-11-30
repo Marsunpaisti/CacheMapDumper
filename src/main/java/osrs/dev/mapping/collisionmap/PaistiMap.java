@@ -69,11 +69,17 @@ public class PaistiMap implements ICollisionMap {
             new KeepArea(2446, 9733, 2526, 9703, 0), // UG Pass bridge area
             new KeepArea(2464, 9670, 2487, 9710, 0), // UG Pass spike puzzle area
             new KeepArea(2505, 3460, 2516, 3465, 0), // Baxtorian falls tile
-            new KeepArea(2684, 9030, 2291, 9318, 1),  // Kruk Caves upper floor
+            new KeepArea(2470, 9108, 2700, 9330, 1), // Kruk Caves upper floor
+            new KeepArea(2306, 9126, 2376, 9188, 1), // Kruk Caves fall area 1
+            new KeepArea(2378, 9153, 2454, 9187, 1), // Kruk Caves fall area 2
+            new KeepArea(2375, 9188, 2423, 9264, 1), // Kruk Caves fall area 3
+            new KeepArea(2334, 9223, 2374, 9277, 1), // Kruk Caves fall area 4a
+            new KeepArea(2375, 9265, 2425, 9279, 1), // Kruk Caves fall area 4b
             new KeepArea(1629, 3123, 1669, 3093, 0), // Varlamore thieving area
             new KeepArea(1790, 4790, 1835, 4865, 0), // Cabin fever quest boats plane 0
             new KeepArea(1790, 4790, 1835, 4865, 1), // Cabin fever quest boats plane 1
-            new KeepArea(1790, 4790, 1835, 4865, 2) // Cabin fever quest boats plane 2
+            new KeepArea(1790, 4790, 1835, 4865, 2), // Cabin fever quest boats plane 2,
+            new KeepArea(2380, 9809, 2411, 9830, 0)  // Brimstails cave
     );
 
     /**
