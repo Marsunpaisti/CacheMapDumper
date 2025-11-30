@@ -30,13 +30,13 @@ public interface ITileDataMap {
      * @param plane the plane
      * @return the data value with bits set according to the stored data
      */
-    default byte getAllDataBits(int x, int y, int plane) {
+    default int getAllDataBits(int x, int y, int plane) {
         int data = 0;
         for (int i = 0; i <= getIndexer().getMaxAddressIndex(); i++) {
             if (isDataBitSet(x, y, plane, i)) {
                 data |= (1 << i);
             }
         }
-        return (byte) data;
+        return data;
     }
 }

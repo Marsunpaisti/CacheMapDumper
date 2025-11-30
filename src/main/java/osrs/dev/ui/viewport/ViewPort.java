@@ -27,7 +27,7 @@ public class ViewPort
     /**
      * Immutable map of tile types to their rendering colors.
      */
-    private static final ImmutableMap<Byte, Color> TILE_TYPE_COLORS = ImmutableMap.<Byte, Color>builder()
+    private static final ImmutableMap<Integer, Color> TILE_TYPE_COLORS = ImmutableMap.<Integer, Color>builder()
             .put(TileType.WATER, new Color(0, 100, 200))                   // Blue
             .put(TileType.CRANDOR_SMEGMA_WATER, new Color(100, 150, 100))  // Greenish
             .put(TileType.TEMPOR_STORM_WATER, new Color(80, 80, 150))      // Dark blue
@@ -140,7 +140,7 @@ public class ViewPort
         {
             for(int y = 0; y < cellDim; y++)
             {
-                byte tileType = Main.getTileTypeMap().getTileType(base.getX() + x, base.getY() + y, displayPlane);
+                int tileType = Main.getTileTypeMap().getTileType(base.getX() + x, base.getY() + y, displayPlane);
                 if (tileType > 0) {
                     Color color = getTileTypeColor(tileType);
                     g2d.setColor(color);
@@ -155,7 +155,7 @@ public class ViewPort
     /**
      * Gets a color for a tile type.
      */
-    private Color getTileTypeColor(byte tileType) {
+    private Color getTileTypeColor(int tileType) {
         return TILE_TYPE_COLORS.getOrDefault(tileType, DEFAULT_COLOR);
     }
 

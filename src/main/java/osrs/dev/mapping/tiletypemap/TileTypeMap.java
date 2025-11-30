@@ -22,13 +22,13 @@ public class TileTypeMap {
         return dataMap.isDataBitSet(x, y, plane, dataBitIndex);
     }
 
-    public byte getTileType(int x, int y, int plane) {
+    public int getTileType(int x, int y, int plane) {
         int data = 0;
         for (int i = 0; i <= getIndexer().getMaxAddressIndex(); i++) {
             if (isDataBitSet(x, y, plane, i)) {
                 data |= (1 << i);
             }
         }
-        return (byte) data;
+        return data;
     }
 }

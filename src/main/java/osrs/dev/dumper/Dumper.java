@@ -304,7 +304,7 @@ public class Dumper {
         }
 
         int textureId = overlayDef.getTexture();
-        Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
+        Integer tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
         if (tileType != null && tileType > 0) {
             tileTypeMapWriter.setTileType(regionX, regionY, plane, tileType);
 

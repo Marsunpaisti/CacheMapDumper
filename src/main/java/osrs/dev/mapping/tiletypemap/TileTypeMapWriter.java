@@ -19,7 +19,7 @@ public class TileTypeMapWriter  {
         dataMapWriter.setDataBit(x, y, plane, dataBitIndex);
     }
 
-    public void setTileType(int x, int y, int plane, byte type){
+    public void setTileType(int x, int y, int plane, int type){
         if ((type & 0b0001) != 0) setDataBit(x, y, plane, 0);
         if ((type & 0b0010) != 0) setDataBit(x, y, plane, 1);
         if ((type & 0b0100) != 0) setDataBit(x, y, plane, 2);

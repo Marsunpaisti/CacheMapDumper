@@ -25,29 +25,6 @@ public class SparseWordTileDataMapWriter implements ITileDataMapWriter {
         this.packer = packer;
     }
 
-    /**
-     * Creates a new writer with the specified bits per value and standard packer.
-     *
-     * @param bitsPerValue number of bits per coordinate value
-     */
-    public SparseWordTileDataMapWriter(int bitsPerValue) {
-        this(bitsPerValue, DirectCoordPacker.STANDARD);
-    }
-
-    /**
-     * Returns the underlying SparseWordSet.
-     */
-    public SparseWordSet getWordSet() {
-        return wordSet;
-    }
-
-    /**
-     * Returns the coordinate packer.
-     */
-    public DirectCoordPacker getPacker() {
-        return packer;
-    }
-
     @Override
     public void setDataBit(int x, int y, int plane, int dataBitIndex) {
         int packedCoord = packer.pack(x, y, plane);

@@ -6,20 +6,20 @@ import com.google.common.collect.ImmutableMap;
  * Flags for the different types of water tiles.
  */
 public class TileType {
-    public static final byte WATER = 1;
-    public static final byte CRANDOR_SMEGMA_WATER = 2;
-    public static final byte TEMPOR_STORM_WATER = 3;
-    public static final byte DISEASE_WATER = 4;
-    public static final byte KELP_WATER = 5;
-    public static final byte SUNBAKED_WATER = 6;
-    public static final byte JAGGED_REEFS_WATER = 7;
-    public static final byte SHARP_CRYSTAL_WATER = 8;
-    public static final byte ICE_WATER = 9;
-    public static final byte NE_PURPLE_GRAY_WATER = 10;
-    public static final byte NW_GRAY_WATER = 11;
-    public static final byte SE_PURPLE_WATER = 12;
+    public static final int WATER = 1;
+    public static final int CRANDOR_SMEGMA_WATER = 2;
+    public static final int TEMPOR_STORM_WATER = 3;
+    public static final int DISEASE_WATER = 4;
+    public static final int KELP_WATER = 5;
+    public static final int SUNBAKED_WATER = 6;
+    public static final int JAGGED_REEFS_WATER = 7;
+    public static final int SHARP_CRYSTAL_WATER = 8;
+    public static final int ICE_WATER = 9;
+    public static final int NE_PURPLE_GRAY_WATER = 10;
+    public static final int NW_GRAY_WATER = 11;
+    public static final int SE_PURPLE_WATER = 12;
 
-    public static ImmutableMap<Integer, Byte> SPRITE_ID_TO_TILE_TYPE = ImmutableMap.<Integer, Byte>builder()
+    public static ImmutableMap<Integer, Integer> SPRITE_ID_TO_TILE_TYPE = ImmutableMap.<Integer, Integer>builder()
             .put(1, WATER)
             .put(130, WATER)
             .put(131, WATER)

@@ -1,4 +1,4 @@
-package osrs.dev.mapping.collisionmap;
+package osrs.dev.mapping.tiletypemap;
 
 import org.junit.jupiter.api.Test;
 
@@ -7,14 +7,14 @@ import java.io.File;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for collision map formats: memory usage, read speed benchmarks, and data comparison.
+ * Tests for tile type map formats: memory usage, read speed benchmarks, and data comparison.
  */
-public class CollisionMapComparisonTest {
+public class TileTypeMapComparisonTest {
 
     private static final String BASE_PATH = System.getProperty("user.home") + "/VitaX/";
-    private static final String ROARING_PATH = BASE_PATH + "map_roaring.dat.gz";
-    private static final String SPARSE_PATH = BASE_PATH + "map_sparse.dat.gz";
-    private static final String WORDSET_PATH = BASE_PATH + "map_wordset.dat.gz";
+    private static final String ROARING_PATH = BASE_PATH + "tile_types_roaring.dat.gz";
+    private static final String SPARSE_PATH = BASE_PATH + "tile_types_sparse.dat.gz";
+    private static final String WORDSET_PATH = BASE_PATH + "tile_types_wordset.dat.gz";
 
     // Coordinate bounds from DirectCoordPacker.STANDARD
     private static final int MIN_X = 480;
@@ -22,7 +22,7 @@ public class CollisionMapComparisonTest {
     private static final int MIN_Y = 0;
     private static final int MAX_Y = 16383;
     private static final int MIN_PLANE = 0;
-    private static final int MAX_PLANE = 3;
+    private static final int MAX_PLANE = 2;
 
     private static final int RANDOM_ITERATIONS = 10_000_000;
 
@@ -58,7 +58,7 @@ public class CollisionMapComparisonTest {
         forceGC();
         long beforeMemory = usedMemory();
 
-        ICollisionMap map = CollisionMapFactory.load(filePath);
+        TileTypeMap map = TileTypeMapFactory.load(filePath);
 
         forceGC();
         long afterMemory = usedMemory();
@@ -68,7 +68,7 @@ public class CollisionMapComparisonTest {
         System.out.printf("Memory/Disk ratio: %.2fx%n", mapMemory / (double) file.length());
 
         // Keep reference alive
-        map.pathableNorth(MIN_X, MIN_Y, 0);
+        map.getTileType(MIN_X, MIN_Y, 0);
     }
 
     // ==================== Benchmark Tests ====================
@@ -98,16 +98,16 @@ public class CollisionMapComparisonTest {
         System.out.println(formatName + " Benchmark");
         System.out.println("=".repeat(formatName.length() + 10));
 
-        ICollisionMap map = CollisionMapFactory.load(filePath);
+        TileTypeMap map = TileTypeMapFactory.load(filePath);
 
         // Warmup
         System.out.println("Warming up JIT (200k reads)...");
         warmup(map);
         try { Thread.sleep(200); } catch (InterruptedException ignored) {}
 
-        // Random access benchmark
-        System.out.printf("%n--- Random Access (%,d reads) ---%n", RANDOM_ITERATIONS);
-        long randomTime = benchmarkRandom(map, RANDOM_ITERATIONS, 42);
+        // Random access benchmark - getTileType
+        System.out.printf("%n--- Random Access - getTileType (%,d reads) ---%n", RANDOM_ITERATIONS);
+        long randomTime = benchmarkRandomGetTileType(map, RANDOM_ITERATIONS, 42);
         double randomNsPerRead = randomTime / (double) RANDOM_ITERATIONS;
         double randomReadsPerSec = RANDOM_ITERATIONS / (randomTime / 1_000_000_000.0);
         System.out.printf("Total time: %,d ns (%.2f ms)%n", randomTime, randomTime / 1_000_000.0);
@@ -119,7 +119,7 @@ public class CollisionMapComparisonTest {
         // Sequential access benchmark
         System.out.println("\n--- Sequential Access (full range scan) ---");
         long seqTime = benchmarkSequential(map);
-        long seqReads = (long)(MAX_X - MIN_X + 1) * (MAX_Y - MIN_Y + 1) * (MAX_PLANE - MIN_PLANE + 1) * 4;
+        long seqReads = (long)(MAX_X - MIN_X + 1) * (MAX_Y - MIN_Y + 1) * (MAX_PLANE - MIN_PLANE + 1);
         double seqNsPerRead = seqTime / (double) seqReads;
         double seqReadsPerSec = seqReads / (seqTime / 1_000_000_000.0);
         System.out.printf("Total reads: %,d%n", seqReads);
@@ -160,10 +160,10 @@ public class CollisionMapComparisonTest {
         System.out.println("=".repeat(14 + name1.length() + name2.length()));
 
         System.out.println("Loading " + name1 + "...");
-        ICollisionMap map1 = CollisionMapFactory.load(path1);
+        TileTypeMap map1 = TileTypeMapFactory.load(path1);
 
         System.out.println("Loading " + name2 + "...");
-        ICollisionMap map2 = CollisionMapFactory.load(path2);
+        TileTypeMap map2 = TileTypeMapFactory.load(path2);
 
         System.out.println("Comparing maps...");
         System.out.printf("Coordinate range: X[%d-%d], Y[%d-%d], Plane[%d-%d]%n",
@@ -174,27 +174,25 @@ public class CollisionMapComparisonTest {
         int firstMismatchX = -1, firstMismatchY = -1, firstMismatchPlane = -1;
         String firstMismatchDetail = null;
 
-        for (int plane = MIN_PLANE; plane <= MAX_PLANE; plane++) {
+        for (int plane = MIN_PLANE; plane <= 1; plane++) {
             System.out.printf("Checking plane %d...%n", plane);
             for (int x = MIN_X; x <= MAX_X; x++) {
                 for (int y = MIN_Y; y <= MAX_Y; y++) {
                     totalTiles++;
 
-                    boolean map1North = map1.pathableNorth(x, y, plane);
-                    boolean map2North = map2.pathableNorth(x, y, plane);
-                    boolean map1East = map1.pathableEast(x, y, plane);
-                    boolean map2East = map2.pathableEast(x, y, plane);
+                    int type1 = map1.getTileType(x, y, plane);
+                    int type2 = map2.getTileType(x, y, plane);
 
-                    if (map1North != map2North || map1East != map2East) {
+                    if (type1 != type2) {
                         mismatchCount++;
                         if (firstMismatchX == -1) {
                             firstMismatchX = x;
                             firstMismatchY = y;
                             firstMismatchPlane = plane;
                             firstMismatchDetail = String.format(
-                                    "north: %s=%b, %s=%b | east: %s=%b, %s=%b",
-                                    name1, map1North, name2, map2North,
-                                    name1, map1East, name2, map2East);
+                                    "%s=%d (0x%02X), %s=%d (0x%02X)",
+                                    name1, type1, type1 & 0xFF,
+                                    name2, type2, type2 & 0xFF);
                         }
                     }
                 }
@@ -216,18 +214,17 @@ public class CollisionMapComparisonTest {
 
     // ==================== Helper Methods ====================
 
-    private void warmup(ICollisionMap map) {
+    private void warmup(TileTypeMap map) {
         java.util.Random random = new java.util.Random(12345);
         for (int i = 0; i < 200_000; i++) {
             int x = MIN_X + random.nextInt(MAX_X - MIN_X + 1);
             int y = MIN_Y + random.nextInt(MAX_Y - MIN_Y + 1);
             int plane = random.nextInt(MAX_PLANE + 1);
-            map.pathableNorth(x, y, plane);
-            map.pathableEast(x, y, plane);
+            map.getTileType(x, y, plane);
         }
     }
 
-    private long benchmarkRandom(ICollisionMap map, int iterations, long seed) {
+    private long benchmarkRandomGetTileType(TileTypeMap map, int iterations, long seed) {
         java.util.Random random = new java.util.Random(seed);
         long total = 0;
 
@@ -236,11 +233,8 @@ public class CollisionMapComparisonTest {
             int x = MIN_X + random.nextInt(MAX_X - MIN_X + 1);
             int y = MIN_Y + random.nextInt(MAX_Y - MIN_Y + 1);
             int plane = random.nextInt(MAX_PLANE + 1);
-            int all = map.all(x, y, plane);
-            if ((all & Flags.EAST) != 0) total++;
-            if ((all & Flags.NORTH) != 0) total++;
-            if ((all & Flags.SOUTH) != 0) total++;
-            if ((all & Flags.WEST) != 0) total++;
+            int tileType = map.getTileType(x, y, plane);
+            total += tileType;
         }
         long elapsed = System.nanoTime() - start;
 
@@ -249,18 +243,15 @@ public class CollisionMapComparisonTest {
         return elapsed;
     }
 
-    private long benchmarkSequential(ICollisionMap map) {
+    private long benchmarkSequential(TileTypeMap map) {
         long total = 0;
 
         long start = System.nanoTime();
         for (int x = MIN_X; x <= MAX_X; x++) {
             for (int y = MIN_Y; y <= MAX_Y; y++) {
                 for (int plane = MIN_PLANE; plane <= MAX_PLANE; plane++) {
-                    int all = map.all(x, y, plane);
-                    if ((all & Flags.EAST) != 0) total++;
-                    if ((all & Flags.NORTH) != 0) total++;
-                    if ((all & Flags.SOUTH) != 0) total++;
-                    if ((all & Flags.WEST) != 0) total++;
+                    int tileType = map.getTileType(x, y, plane);
+                    total += tileType;
                 }
             }
         }

@@ -31,20 +31,6 @@ public class SparseWordTileDataMap implements ITileDataMap {
         this.indexerAdapter = new IndexerAdapter();
     }
 
-    /**
-     * Returns the coordinate packer used by this map.
-     */
-    public DirectCoordPacker getPacker() {
-        return packer;
-    }
-
-    /**
-     * Returns the underlying SparseWordSet.
-     */
-    public SparseWordSet getWordSet() {
-        return wordSet;
-    }
-
     @Override
     public ICoordIndexer getIndexer() {
         return indexerAdapter;
@@ -70,9 +56,9 @@ public class SparseWordTileDataMap implements ITileDataMap {
      * @return the data value
      */
     @Override
-    public byte getAllDataBits(int x, int y, int plane) {
+    public int getAllDataBits(int x, int y, int plane) {
         int packedCoord = packer.pack(x, y, plane);
-        return (byte) wordSet.get(packedCoord);
+        return wordSet.get(packedCoord);
     }
 
     /**
