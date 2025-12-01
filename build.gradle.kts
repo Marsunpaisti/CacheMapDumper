@@ -1,5 +1,6 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("me.champeau.jmh") version "0.7.2"
     java
 }
 
@@ -34,6 +35,10 @@ dependencies {
     // SLF4J and Logback
     implementation("org.slf4j:slf4j-api:2.0.9")
     implementation("ch.qos.logback:logback-classic:1.4.11")
+
+    // JMH
+    jmh("org.openjdk.jmh:jmh-core:1.37")
+    jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
 
 
@@ -58,4 +63,11 @@ tasks {
     test {
         useJUnitPlatform()
     }
+}
+
+jmh {
+    warmupIterations.set(3)
+    iterations.set(5)
+    fork.set(2)
+    resultFormat.set("JSON")
 }
