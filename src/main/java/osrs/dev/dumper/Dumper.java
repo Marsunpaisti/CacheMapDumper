@@ -25,8 +25,10 @@ import osrs.dev.mapping.collisionmap.CollisionMapWriter;
 import osrs.dev.mapping.collisionmap.ICollisionMap;
 import osrs.dev.mapping.collisionmap.PaistiMap;
 import osrs.dev.mapping.tiletypemap.TileType;
+import osrs.dev.mapping.tiletypemap.TileTypeMap;
 import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.mapping.tiletypemap.TileTypeMapWriter;
+import osrs.dev.postprocessor.BoatNavigationMapProcessor;
 import osrs.dev.util.ConfigManager;
 import osrs.dev.util.OptionsParser;
 import osrs.dev.util.ProgressBar;
@@ -239,6 +241,25 @@ public class Dumper {
             log.info("Wrote tile type map to {}", OUTPUT_TILE_TYPES.getPath());
             dumper.waterMaskWriter.save(new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
             log.info("Wrote water mask to {}", new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
+
+            // Generate 4x4 boat navigation map
+            try {
+                log.info("Generating 4x4 boat navigation map...");
+                ICollisionMap loadedCollisionMap = CollisionMapFactory.load(OUTPUT_MAP.getPath());
+                TileTypeMap loadedTileTypeMap = TileTypeMapFactory.load(OUTPUT_TILE_TYPES.getPath());
+                BoatNavigationMapProcessor boatProcessor = new BoatNavigationMapProcessor(loadedCollisionMap, loadedTileTypeMap, format);
+
+                int totalStrips = boatProcessor.getTotalStrips();
+                ProgressBar boatProgressBar = new ProgressBar(totalStrips, 50);
+                boatProcessor.process(4, Runtime.getRuntime().availableProcessors(), boatProgressBar::update);
+
+                String formatSuffix = format == CollisionMapFactory.Format.ROARING ? "roaring" : "sparse";
+                String boatNavPath = new ConfigManager().outputDir() + "boat_nav_4x4_" + formatSuffix + ".dat.gz";
+                boatProcessor.save(boatNavPath);
+                log.info("Wrote 4x4 boat navigation map to {}", boatNavPath);
+            } catch (Exception e) {
+                log.error("Failed to generate boat navigation map", e);
+            }
 
             // Log coordinate bounds and calculate bits needed
             log.info("=== COORDINATE BOUNDS ===");

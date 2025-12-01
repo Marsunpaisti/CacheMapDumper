@@ -2,13 +2,19 @@ package osrs.dev.ui;
 
 import osrs.dev.dumper.Dumper;
 import osrs.dev.Main;
+import osrs.dev.mapping.collisionmap.CollisionMapFactory;
+import osrs.dev.mapping.collisionmap.ICollisionMap;
+import osrs.dev.mapping.tiletypemap.TileTypeMap;
+import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.ui.viewport.ViewPort;
 import osrs.dev.util.ImageUtil;
 import osrs.dev.util.ThreadPool;
 import osrs.dev.util.WorldPoint;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -213,6 +219,21 @@ public class UIFrame extends JFrame {
 
         // Add the button and combo box to the menu bar
         menuBar.add(button);
+
+        // Add Load button with popup menu (matching Settings button style)
+        JButton loadButton = new JButton("Load");
+        JPopupMenu loadPopup = new JPopupMenu();
+        JMenuItem loadCollisionItem = new JMenuItem("Load Collision Map...");
+        JMenuItem loadTileTypeItem = new JMenuItem("Load Tile Type Map...");
+
+        loadCollisionItem.addActionListener(e -> loadCollisionMapFromFile());
+        loadTileTypeItem.addActionListener(e -> loadTileTypeMapFromFile());
+
+        loadPopup.add(loadCollisionItem);
+        loadPopup.add(loadTileTypeItem);
+
+        loadButton.addActionListener(e -> loadPopup.show(loadButton, 0, loadButton.getHeight()));
+        menuBar.add(loadButton);
 
         worldPointField = new JTextField();
 
@@ -551,5 +572,81 @@ public class UIFrame extends JFrame {
             center.setPlane(plane);
             update();
         });
+    }
+
+    /**
+     * Opens a file chooser dialog to load a collision map from file.
+     */
+    private void loadCollisionMapFromFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Load Collision Map");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Map files (*.dat, *.gz)", "dat", "gz"));
+
+        // Start in the output directory if configured
+        String outputDir = Main.getConfigManager().outputDir();
+        if (outputDir != null && !outputDir.isEmpty()) {
+            File dir = new File(outputDir);
+            if (dir.exists()) {
+                fileChooser.setCurrentDirectory(dir);
+            }
+        }
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                ICollisionMap loadedMap = CollisionMapFactory.load(selectedFile.getAbsolutePath());
+                Main.setCollision(loadedMap);
+                update();
+                JOptionPane.showMessageDialog(this,
+                        "Collision map loaded successfully from:\n" + selectedFile.getAbsolutePath(),
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Failed to load collision map:\n" + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Opens a file chooser dialog to load a tile type map from file.
+     */
+    private void loadTileTypeMapFromFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Load Tile Type Map");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Map files (*.dat, *.gz)", "dat", "gz"));
+
+        // Start in the output directory if configured
+        String outputDir = Main.getConfigManager().outputDir();
+        if (outputDir != null && !outputDir.isEmpty()) {
+            File dir = new File(outputDir);
+            if (dir.exists()) {
+                fileChooser.setCurrentDirectory(dir);
+            }
+        }
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                TileTypeMap loadedMap = TileTypeMapFactory.load(selectedFile.getAbsolutePath());
+                Main.setTileTypeMap(loadedMap);
+                update();
+                JOptionPane.showMessageDialog(this,
+                        "Tile type map loaded successfully from:\n" + selectedFile.getAbsolutePath(),
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Failed to load tile type map:\n" + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
     }
 }

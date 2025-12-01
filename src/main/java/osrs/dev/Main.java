@@ -25,6 +25,22 @@ public class Main
     private static ICollisionMap collision;
     @Getter
     private static TileTypeMap tileTypeMap;
+
+    /**
+     * Set the collision map
+     * @param collisionMap the new collision map
+     */
+    public static void setCollision(ICollisionMap collisionMap) {
+        collision = collisionMap;
+    }
+
+    /**
+     * Set the tile type map
+     * @param map the new tile type map
+     */
+    public static void setTileTypeMap(TileTypeMap map) {
+        tileTypeMap = map;
+    }
     @Getter
     private static ConfigManager configManager;
     private static UIFrame frame;
