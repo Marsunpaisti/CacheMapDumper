@@ -1,7 +1,6 @@
 package osrs.dev.ui.viewport;
 
 import lombok.Data;
-import osrs.dev.Main;
 import osrs.dev.mapping.collisionmap.Flags;
 
 import java.awt.*;
@@ -13,6 +12,9 @@ import java.util.List;
  */
 @Data
 public class Cell {
+    private static final Color COLLISION_COLOR = new Color(0xFF, 0x00, 0x00);
+    private static final Color WALL_COLOR = new Color(0x00, 0x00, 0x00);
+
     private final byte flag;
     private final Point point;
 
@@ -114,9 +116,9 @@ public class Cell {
         if(!none())
         {
             if(cellWidth > 10)
-                g2d.setColor(Main.getConfigManager().collisionColor());
+                g2d.setColor(COLLISION_COLOR);
             else
-                g2d.setColor(Main.getConfigManager().wallColor());
+                g2d.setColor(WALL_COLOR);
             if(full())
             {
                 g2d.fillRect(x, y, Math.round(cellWidth) + 1, Math.round(cellHeight) + 1);
@@ -136,7 +138,7 @@ public class Cell {
         float cellWidth = (float) width / cells;
         float cellHeight = (float) height / cells;
 
-        g2d.setColor(Main.getConfigManager().wallColor());
+        g2d.setColor(WALL_COLOR);
         int lineThickness = 2;
 
         for (Wall wall : getWalls()) {

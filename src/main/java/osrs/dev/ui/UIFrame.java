@@ -35,7 +35,6 @@ public class UIFrame extends JFrame {
     private final WorldPoint base = new WorldPoint(3207, 3213, 0);
     private final WorldPoint center = new WorldPoint(0,0,0);
     private Future<?> current;
-    private SettingsFrame settingsFrame;
     private JTextField worldPointField;
     private JComboBox<ViewerMode> viewerModeComboBox;
     private ViewerMode currentViewerMode;
@@ -209,18 +208,7 @@ public class UIFrame extends JFrame {
         // Create the menu bar
         JMenuBar menuBar = new JMenuBar();
 
-        // Add a button to the menu bar
-        JButton button = new JButton("Settings");
-        button.addActionListener(e -> {
-            if(settingsFrame == null)
-                settingsFrame = new SettingsFrame(this::update);
-            settingsFrame.setVisible(true);
-        });
-
-        // Add the button and combo box to the menu bar
-        menuBar.add(button);
-
-        // Add Load button with popup menu (matching Settings button style)
+        // Add Load button with popup menu
         JButton loadButton = new JButton("Load");
         JPopupMenu loadPopup = new JPopupMenu();
         JMenuItem loadCollisionItem = new JMenuItem("Load Collision Map...");
@@ -234,6 +222,24 @@ public class UIFrame extends JFrame {
 
         loadButton.addActionListener(e -> loadPopup.show(loadButton, 0, loadButton.getHeight()));
         menuBar.add(loadButton);
+
+        // Add Export button with popup menu
+        JButton exportButton = new JButton("Export");
+        JPopupMenu exportPopup = new JPopupMenu();
+        JMenuItem exportCollisionItem = new JMenuItem("Export Collision Map as PNG...");
+        JMenuItem exportTileTypeItem = new JMenuItem("Export Tile Type Map as PNG...");
+        JMenuItem exportCombinedItem = new JMenuItem("Export Combined Map as PNG...");
+
+        exportCollisionItem.addActionListener(e -> exportMapToPng(ViewerMode.COLLISION));
+        exportTileTypeItem.addActionListener(e -> exportMapToPng(ViewerMode.TILE_TYPE));
+        exportCombinedItem.addActionListener(e -> exportMapToPng(ViewerMode.COMBINED));
+
+        exportPopup.add(exportCollisionItem);
+        exportPopup.add(exportTileTypeItem);
+        exportPopup.add(exportCombinedItem);
+
+        exportButton.addActionListener(e -> exportPopup.show(exportButton, 0, exportButton.getHeight()));
+        menuBar.add(exportButton);
 
         worldPointField = new JTextField();
 
@@ -387,6 +393,9 @@ public class UIFrame extends JFrame {
             return;
         }
         if (currentViewerMode == ViewerMode.TILE_TYPE && Main.getTileTypeMap() == null) {
+            return;
+        }
+        if (currentViewerMode == ViewerMode.COMBINED && Main.getCollision() == null && Main.getTileTypeMap() == null) {
             return;
         }
 
@@ -597,6 +606,7 @@ public class UIFrame extends JFrame {
             try {
                 ICollisionMap loadedMap = CollisionMapFactory.load(selectedFile.getAbsolutePath());
                 Main.setCollision(loadedMap);
+                viewPort.invalidateCollisionCache();
                 update();
                 JOptionPane.showMessageDialog(this,
                         "Collision map loaded successfully from:\n" + selectedFile.getAbsolutePath(),
@@ -635,6 +645,7 @@ public class UIFrame extends JFrame {
             try {
                 TileTypeMap loadedMap = TileTypeMapFactory.load(selectedFile.getAbsolutePath());
                 Main.setTileTypeMap(loadedMap);
+                viewPort.invalidateTileTypeCache();
                 update();
                 JOptionPane.showMessageDialog(this,
                         "Tile type map loaded successfully from:\n" + selectedFile.getAbsolutePath(),
@@ -648,5 +659,128 @@ public class UIFrame extends JFrame {
                 ex.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Opens a dialog to export the map as a PNG file.
+     * @param mode The viewer mode to export (collision or tile type)
+     */
+    private void exportMapToPng(ViewerMode mode) {
+        // Check if data is available
+        if (mode == ViewerMode.COLLISION && Main.getCollision() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No collision map loaded. Please load a collision map first.",
+                    "Export Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (mode == ViewerMode.TILE_TYPE && Main.getTileTypeMap() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No tile type map loaded. Please load a tile type map first.",
+                    "Export Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (mode == ViewerMode.COMBINED && Main.getCollision() == null && Main.getTileTypeMap() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No maps loaded. Please load at least one map first.",
+                    "Export Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Ask user to select plane
+        String[] planes = {"0", "1", "2", "3"};
+        String selectedPlane = (String) JOptionPane.showInputDialog(
+                this,
+                "Select plane to export:",
+                "Export " + mode.getDisplayName() + " Map",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                planes,
+                String.valueOf(base.getPlane())
+        );
+
+        if (selectedPlane == null) {
+            return; // User cancelled
+        }
+
+        int plane = Integer.parseInt(selectedPlane);
+
+        // Show file save dialog
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export " + mode.getDisplayName() + " Map as PNG");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("PNG files (*.png)", "png"));
+
+        String defaultName = mode.getDisplayName().toLowerCase().replace(" ", "_") + "_plane" + plane + ".png";
+        fileChooser.setSelectedFile(new File(defaultName));
+
+        // Start in output directory if configured
+        String outputDir = Main.getConfigManager().outputDir();
+        if (outputDir != null && !outputDir.isEmpty()) {
+            File dir = new File(outputDir);
+            if (dir.exists()) {
+                fileChooser.setCurrentDirectory(dir);
+            }
+        }
+
+        int result = fileChooser.showSaveDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return; // User cancelled
+        }
+
+        File outputFile = fileChooser.getSelectedFile();
+        // Ensure .png extension
+        if (!outputFile.getName().toLowerCase().endsWith(".png")) {
+            outputFile = new File(outputFile.getAbsolutePath() + ".png");
+        }
+
+        // Show progress dialog
+        JDialog progressDialog = new JDialog(this, "Exporting...", true);
+        JPanel progressPanel = new JPanel(new BorderLayout(10, 10));
+        progressPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JLabel progressLabel = new JLabel("Exporting " + mode.getDisplayName() + " map for plane " + plane + "...");
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressPanel.add(progressLabel, BorderLayout.NORTH);
+        progressPanel.add(progressBar, BorderLayout.CENTER);
+        progressDialog.add(progressPanel);
+        progressDialog.pack();
+        progressDialog.setLocationRelativeTo(this);
+
+        File finalOutputFile = outputFile;
+        ThreadPool.submit(() -> {
+            SwingUtilities.invokeLater(() -> progressDialog.setVisible(true));
+        });
+
+        int finalPlane = plane;
+        ThreadPool.submit(() -> {
+            try {
+                boolean success = viewPort.exportMapToPng(mode, finalPlane, finalOutputFile);
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.dispose();
+                    if (success) {
+                        JOptionPane.showMessageDialog(this,
+                                "Map exported successfully to:\n" + finalOutputFile.getAbsolutePath(),
+                                "Export Complete",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "Failed to export map.",
+                                "Export Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.dispose();
+                    JOptionPane.showMessageDialog(this,
+                            "Failed to export map:\n" + ex.getMessage(),
+                            "Export Error",
+                            JOptionPane.ERROR_MESSAGE);
+                });
+                ex.printStackTrace();
+            }
+        });
     }
 }

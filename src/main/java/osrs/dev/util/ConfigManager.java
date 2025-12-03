@@ -7,7 +7,6 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
-import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,10 +28,6 @@ public class ConfigManager
         map.put("fresh_cache", true);
         map.put("format", "RoaringBitmap");
         map.put("viewer_mode", "Collision");
-        map.put("bg_color", "#F8F8F8");
-        map.put("grid_color", "#00FFFF");
-        map.put("collision_color", "#FF0000");
-        map.put("wall_color", "#000000");
         ensure(map);
     }
 
@@ -86,38 +81,6 @@ public class ConfigManager
         return getString("viewer_mode");
     }
 
-    public Color bgColor() {
-        return Color.decode(getString("bg_color"));
-    }
-
-    public String bgColorText() {
-        return getString("bg_color");
-    }
-
-    public Color gridColor() {
-        return Color.decode(getString("grid_color"));
-    }
-
-    public String gridColorText() {
-        return getString("grid_color");
-    }
-
-    public Color collisionColor() {
-        return Color.decode(getString("collision_color"));
-    }
-
-    public String collisionColorText() {
-        return getString("collision_color");
-    }
-
-    public Color wallColor() {
-        return Color.decode(getString("wall_color"));
-    }
-
-    public String wallColorText() {
-        return getString("wall_color");
-    }
-
     public void setOutputDir(String dir) {
         setProperty("output_dir", dir);
     }
@@ -132,22 +95,6 @@ public class ConfigManager
 
     public void setViewerMode(String viewerMode) {
         setProperty("viewer_mode", viewerMode);
-    }
-
-    public void setBgColor(String colorHex) {
-        setProperty("bg_color", colorHex);
-    }
-
-    public void setGridColor(String colorHex) {
-        setProperty("grid_color", colorHex);
-    }
-
-    public void setCollisionColor(String colorHex) {
-        setProperty("collision_color", colorHex);
-    }
-
-    public void setWallColor(String colorHex) {
-        setProperty("wall_color", colorHex);
     }
 
     /**
