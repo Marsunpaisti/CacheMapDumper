@@ -101,13 +101,14 @@ public class BoatNavigationMapProcessor {
 
         BoatFitChecker checker = new BoatFitChecker(collisionMap, tileTypeMap, boatSize);
 
-        // Get coordinate bounds from indexer
-        int minX = INDEXER.getMinX();
-        int maxX = INDEXER.getMaxX();
-        int minY = INDEXER.getMinY();
-        int maxY = INDEXER.getMaxY();
-        int minPlane = INDEXER.getMinPlane();
-        int maxPlane = INDEXER.getMaxPlane();
+        // Get coordinate bounds from tile type map's indexer (includes safety margin)
+        CacheEfficientCoordIndexer indexer = (CacheEfficientCoordIndexer) tileTypeMap.getIndexer();
+        int minX = indexer.getMinX();
+        int maxX = indexer.getMaxX();
+        int minY = indexer.getMinY();
+        int maxY = indexer.getMaxY();
+        int minPlane = indexer.getMinPlane();
+        int maxPlane = indexer.getMaxPlane();
 
         AtomicLong tilesProcessed = new AtomicLong(0);
         AtomicLong fitNorthCount = new AtomicLong(0);

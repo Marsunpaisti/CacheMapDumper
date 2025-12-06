@@ -133,10 +133,10 @@ Z range: 0 to 3 (span: 4)
         this.maxBitCapacity = maxBitCapacity;
 
         this.maxDataBitIndex = maxBitCapacity - this.totalCoordBits;
-        this.minX = xBase;
-        this.maxX = xBase + xMask;
-        this.minY = yBase;
-        this.maxY = yBase + yMask;
+        this.minX = xBase + 2;
+        this.maxX = xBase + xMask - 2;
+        this.minY = yBase + 2;
+        this.maxY = yBase + yMask - 2;
         this.minPlane = planeBase;
         this.maxPlane = planeBase + planeMask;
     }

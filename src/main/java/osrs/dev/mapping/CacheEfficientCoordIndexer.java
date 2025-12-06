@@ -144,10 +144,11 @@ public class CacheEfficientCoordIndexer implements ICoordIndexer {
 
         this.isAdditionalValidationEnabled = isAdditionalValidationEnabled;
 
-        this.minX = xBase;
-        this.maxX = xBase + xMask;
-        this.minY = yBase;
-        this.maxY = yBase + yMask;
+        // Safety margin of 2 to avoid edge cases with SparseBitSet at Integer.MAX_VALUE
+        this.minX = xBase + 2;
+        this.maxX = xBase + xMask - 2;
+        this.minY = yBase + 2;
+        this.maxY = yBase + yMask - 2;
         this.minPlane = planeBase;
         this.maxPlane = planeBase + planeMask;
     }

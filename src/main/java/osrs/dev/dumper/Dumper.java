@@ -29,6 +29,7 @@ import osrs.dev.mapping.tiletypemap.TileTypeMap;
 import osrs.dev.mapping.tiletypemap.TileTypeMapFactory;
 import osrs.dev.mapping.tiletypemap.TileTypeMapWriter;
 import osrs.dev.postprocessor.BoatNavigationMapProcessor;
+import osrs.dev.postprocessor.TileTypeMapPostProcessor;
 import osrs.dev.util.ConfigManager;
 import osrs.dev.util.OptionsParser;
 import osrs.dev.util.ProgressBar;
@@ -61,10 +62,8 @@ public class Dumper {
     private final OverlayManager overlayManager;
     private final UnderlayManager underlayManager;
     private final CollisionMapWriter collisionMapWriter;
-    private final CollisionMapWriter waterMaskWriter;
     private final TileTypeMapWriter tileTypeMapWriter;
     private final PaistiMap paistiMap;
-    private final ICollisionMap waterTileMask;
 
     // Coordinate bounds tracking
     private int minX = Integer.MAX_VALUE;
@@ -98,19 +97,6 @@ public class Dumper {
                 : TileTypeMapFactory.Format.ROARING;
         this.tileTypeMapWriter = TileTypeMapFactory.createWriter(tileTypeFormat);
 
-        this.waterMaskWriter = CollisionMapFactory.createWriter(
-                CollisionMapFactory.Format.SPARSE_BITSET
-        );
-
-
-        ICollisionMap waterTilesMaskResult = null;
-        try {
-            waterTilesMaskResult = CollisionMapFactory.load(System.getProperty("user.home") + "/VitaX/water_mask_sparse.dat.gz");
-            log.info("Water tiles mask loaded successfully.");
-        } catch (Exception e) {
-            log.error("Failed to load water tiles mask", e);
-        }
-
         PaistiMap paistiMapResult = null;
         try {
             paistiMapResult = PaistiMap.loadFromResource();
@@ -120,7 +106,6 @@ public class Dumper {
         }
 
         this.paistiMap = paistiMapResult;
-        this.waterTileMask = waterTilesMaskResult;
 
         objectManager.load();
         overlayManager.load();
@@ -239,24 +224,44 @@ public class Dumper {
             log.info("Wrote collision map to {}", OUTPUT_MAP.getPath());
             dumper.tileTypeMapWriter.save(OUTPUT_TILE_TYPES.getPath());
             log.info("Wrote tile type map to {}", OUTPUT_TILE_TYPES.getPath());
-            dumper.waterMaskWriter.save(new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
-            log.info("Wrote water mask to {}", new ConfigManager().outputDir() + "water_mask_sparse.dat.gz");
 
-            // Generate 4x4 boat navigation map
+            // Post-process tiletype map to filter small water bodies
             try {
-                log.info("Generating 4x4 boat navigation map...");
+                log.info("Post-processing tile type map to filter small water bodies...");
+                TileTypeMap tileTypeMapForPostProcess = TileTypeMapFactory.load(OUTPUT_TILE_TYPES.getPath());
+                TileTypeMapFactory.Format postProcessFormat = format == CollisionMapFactory.Format.SPARSE_BITSET
+                        ? TileTypeMapFactory.Format.SPARSE_BITSET
+                        : TileTypeMapFactory.Format.ROARING;
+                TileTypeMapPostProcessor postProcessor = new TileTypeMapPostProcessor(tileTypeMapForPostProcess, postProcessFormat);
+
+                int totalPlanes = postProcessor.getTotalPlanes();
+                ProgressBar postProcessBar = new ProgressBar(totalPlanes, 50);
+                postProcessor.process(postProcessBar::update);
+
+                String formatSuffix = format == CollisionMapFactory.Format.ROARING ? "roaring" : "sparse";
+                String postProcessedPath = optionsParser.getOutputDir() + "postprocessed_tile_types_" + formatSuffix + ".dat.gz";
+                postProcessor.save(postProcessedPath);
+                log.info("Wrote post-processed tile type map to {}", postProcessedPath);
+            } catch (Exception e) {
+                log.error("Failed to post-process tile type map", e);
+            }
+
+            // Generate 5x5 boat navigation map using post-processed tile type map
+            try {
+                log.info("Generating 5x5 boat navigation map...");
                 ICollisionMap loadedCollisionMap = CollisionMapFactory.load(OUTPUT_MAP.getPath());
-                TileTypeMap loadedTileTypeMap = TileTypeMapFactory.load(OUTPUT_TILE_TYPES.getPath());
+                String formatSuffix = format == CollisionMapFactory.Format.ROARING ? "roaring" : "sparse";
+                String postProcessedTileTypePath = optionsParser.getOutputDir() + "postprocessed_tile_types_" + formatSuffix + ".dat.gz";
+                TileTypeMap loadedTileTypeMap = TileTypeMapFactory.load(postProcessedTileTypePath);
                 BoatNavigationMapProcessor boatProcessor = new BoatNavigationMapProcessor(loadedCollisionMap, loadedTileTypeMap, format);
 
                 int totalStrips = boatProcessor.getTotalStrips();
                 ProgressBar boatProgressBar = new ProgressBar(totalStrips, 50);
-                boatProcessor.process(4, Runtime.getRuntime().availableProcessors(), boatProgressBar::update);
+                boatProcessor.process(5, Runtime.getRuntime().availableProcessors(), boatProgressBar::update);
 
-                String formatSuffix = format == CollisionMapFactory.Format.ROARING ? "roaring" : "sparse";
-                String boatNavPath = new ConfigManager().outputDir() + "boat_nav_4x4_" + formatSuffix + ".dat.gz";
+                String boatNavPath = new ConfigManager().outputDir() + "boat_nav_5x5_" + formatSuffix + ".dat.gz";
                 boatProcessor.save(boatNavPath);
-                log.info("Wrote 4x4 boat navigation map to {}", boatNavPath);
+                log.info("Wrote 5x5 boat navigation map to {}", boatNavPath);
             } catch (Exception e) {
                 log.error("Failed to generate boat navigation map", e);
             }
@@ -319,14 +324,6 @@ public class Dumper {
         Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
         if (tileType != null && tileType > 0) {
             tileTypeMapWriter.setTileType(regionX, regionY, plane, tileType);
-
-            // Mark the 5x5 area around water tiles in the water mask
-            for (int dx = -2; dx <= 2; dx++) {
-                for (int dy = -2; dy <= 12; dy++) {
-                    waterMaskWriter.setPathableNorth(regionX, regionY, plane, false);
-                    waterMaskWriter.setPathableEast(regionX, regionY, plane, false);
-                }
-            }
         }
     }
 

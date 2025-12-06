@@ -130,10 +130,11 @@ class CacheEfficientCoordIndexerTest {
         CacheEfficientCoordIndexer indexer = new CacheEfficientCoordIndexer(
                 32, false, 12, 960, 14, 1000, 2, 0, 4);
 
-        assertEquals(960, indexer.getMinX());
-        assertEquals(960 + 4095, indexer.getMaxX());
-        assertEquals(1000, indexer.getMinY());
-        assertEquals(1000 + 16383, indexer.getMaxY());
+        // Safety margin of 2 is applied
+        assertEquals(960 + 2, indexer.getMinX());
+        assertEquals(960 + 4095 - 2, indexer.getMaxX());
+        assertEquals(1000 + 2, indexer.getMinY());
+        assertEquals(1000 + 16383 - 2, indexer.getMaxY());
         assertEquals(0, indexer.getMinPlane());
         assertEquals(3, indexer.getMaxPlane());
     }
@@ -144,15 +145,16 @@ class CacheEfficientCoordIndexerTest {
         CacheEfficientCoordIndexer indexer = new CacheEfficientCoordIndexer(
                 32, true, 12, 960, 14, 0, 2, 0, 4);
 
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(960, 0, 0, 0));
+        // Safety margin of 2 means valid range is [962, 5053]
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(962, 2, 0, 0));
 
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(959, 0, 0, 0)
+                indexer.packToBitmapIndex(961, 2, 0, 0)
         );
         assertTrue(exception1.getMessage().contains("X coordinate"));
 
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(960 + 4096, 0, 0, 0)
+                indexer.packToBitmapIndex(960 + 4095 - 1, 2, 0, 0)
         );
         assertTrue(exception2.getMessage().contains("X coordinate"));
     }
@@ -163,15 +165,16 @@ class CacheEfficientCoordIndexerTest {
         CacheEfficientCoordIndexer indexer = new CacheEfficientCoordIndexer(
                 32, true, 12, 0, 14, 100, 2, 0, 4);
 
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 100, 0, 0));
+        // Safety margin of 2 means valid Y range is [102, 16481]
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 102, 0, 0));
 
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 99, 0, 0)
+                indexer.packToBitmapIndex(2, 101, 0, 0)
         );
         assertTrue(exception1.getMessage().contains("Y coordinate"));
 
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 100 + 16384, 0, 0)
+                indexer.packToBitmapIndex(2, 100 + 16383 - 1, 0, 0)
         );
         assertTrue(exception2.getMessage().contains("Y coordinate"));
     }
@@ -182,16 +185,17 @@ class CacheEfficientCoordIndexerTest {
         CacheEfficientCoordIndexer indexer = new CacheEfficientCoordIndexer(
                 32, true, 12, 0, 14, 0, 2, 0, 4);
 
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 0));
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 3, 0));
+        // Use valid X/Y coordinates (with safety margin)
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 0));
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 3, 0));
 
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 0, -1, 0)
+                indexer.packToBitmapIndex(2, 2, -1, 0)
         );
         assertTrue(exception1.getMessage().contains("Plane coordinate"));
 
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 0, 4, 0)
+                indexer.packToBitmapIndex(2, 2, 4, 0)
         );
         assertTrue(exception2.getMessage().contains("Plane coordinate"));
     }
@@ -202,16 +206,17 @@ class CacheEfficientCoordIndexerTest {
         CacheEfficientCoordIndexer indexer = new CacheEfficientCoordIndexer(
                 32, true, 12, 0, 14, 0, 2, 0, 4);
 
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 0));
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 3));
+        // Use valid X/Y coordinates (with safety margin)
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 0));
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 3));
 
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 0, 0, -1)
+                indexer.packToBitmapIndex(2, 2, 0, -1)
         );
         assertTrue(exception1.getMessage().contains("Address index"));
 
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-                indexer.packToBitmapIndex(0, 0, 0, 4)
+                indexer.packToBitmapIndex(2, 2, 0, 4)
         );
         assertTrue(exception2.getMessage().contains("Address index"));
     }
@@ -283,8 +288,9 @@ class CacheEfficientCoordIndexerTest {
                 .addressesPerCoordinate(4)
                 .build();
 
-        assertEquals(960, indexer.getMinX());
-        assertEquals(1000, indexer.getMinY());
+        // Safety margin of 2 is applied
+        assertEquals(960 + 2, indexer.getMinX());
+        assertEquals(1000 + 2, indexer.getMinY());
         assertEquals(4, indexer.getAddressesPerCoordinate());
         assertEquals(3, indexer.getMaxAddressIndex());
     }

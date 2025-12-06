@@ -48,10 +48,11 @@ class ConfigurableCoordIndexerTest {
     void testConstructorSetsCoordinateBounds() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, false, 12, 960, 14, 1000, 2, 0);
 
-        assertEquals(960, indexer.getMinX());
-        assertEquals(960 + 4095, indexer.getMaxX());
-        assertEquals(1000, indexer.getMinY());
-        assertEquals(1000 + 16383, indexer.getMaxY());
+        // Safety margin of 2 is applied
+        assertEquals(960 + 2, indexer.getMinX());
+        assertEquals(960 + 4095 - 2, indexer.getMaxX());
+        assertEquals(1000 + 2, indexer.getMinY());
+        assertEquals(1000 + 16383 - 2, indexer.getMaxY());
         assertEquals(0, indexer.getMinPlane());
         assertEquals(3, indexer.getMaxPlane());
     }
@@ -61,18 +62,18 @@ class ConfigurableCoordIndexerTest {
     void testPackToBitmapIndexValidatesX() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, true, 12, 960, 14, 0, 2, 0);
 
-        // Valid coordinate
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(960, 0, 0, 0));
+        // Valid coordinate (with safety margin: minX = 962)
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(962, 2, 0, 0));
 
         // X below minimum
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(959, 0, 0, 0)
+            indexer.packToBitmapIndex(961, 2, 0, 0)
         );
         assertTrue(exception1.getMessage().contains("X coordinate"));
 
         // X above maximum
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(960 + 4096, 0, 0, 0)
+            indexer.packToBitmapIndex(960 + 4095 - 1, 2, 0, 0)
         );
         assertTrue(exception2.getMessage().contains("X coordinate"));
     }
@@ -82,18 +83,18 @@ class ConfigurableCoordIndexerTest {
     void testPackToBitmapIndexValidatesY() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, true, 12, 0, 14, 100, 2, 0);
 
-        // Valid coordinate
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 100, 0, 0));
+        // Valid coordinate (with safety margin: minY = 102)
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 102, 0, 0));
 
         // Y below minimum
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 99, 0, 0)
+            indexer.packToBitmapIndex(2, 101, 0, 0)
         );
         assertTrue(exception1.getMessage().contains("Y coordinate"));
 
         // Y above maximum
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 100 + 16384, 0, 0)
+            indexer.packToBitmapIndex(2, 100 + 16383 - 1, 0, 0)
         );
         assertTrue(exception2.getMessage().contains("Y coordinate"));
     }
@@ -103,19 +104,19 @@ class ConfigurableCoordIndexerTest {
     void testPackToBitmapIndexValidatesPlane() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, true, 12, 0, 14, 0, 2, 0);
 
-        // Valid plane
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 0));
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 3, 0));
+        // Valid plane (with safety margin for X/Y)
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 0));
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 3, 0));
 
         // Plane below minimum
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 0, -1, 0)
+            indexer.packToBitmapIndex(2, 2, -1, 0)
         );
         assertTrue(exception1.getMessage().contains("Plane coordinate"));
 
         // Plane above maximum
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 0, 4, 0)
+            indexer.packToBitmapIndex(2, 2, 4, 0)
         );
         assertTrue(exception2.getMessage().contains("Plane coordinate"));
     }
@@ -125,19 +126,19 @@ class ConfigurableCoordIndexerTest {
     void testPackToBitmapIndexValidatesAddressIndex() {
         ConfigurableCoordIndexer indexer = new ConfigurableCoordIndexer(32, true, 12, 0, 14, 0, 2, 0);
 
-        // Valid address indices (0 to 4)
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 0));
-        assertDoesNotThrow(() -> indexer.packToBitmapIndex(0, 0, 0, 4));
+        // Valid address indices (0 to 4) - with safety margin for X/Y
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 0));
+        assertDoesNotThrow(() -> indexer.packToBitmapIndex(2, 2, 0, 4));
 
         // Address index below minimum
         IllegalArgumentException exception1 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 0, 0, -1)
+            indexer.packToBitmapIndex(2, 2, 0, -1)
         );
         assertTrue(exception1.getMessage().contains("Address index"));
 
         // Address index above maximum
         IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () ->
-            indexer.packToBitmapIndex(0, 0, 0, 5)
+            indexer.packToBitmapIndex(2, 2, 0, 5)
         );
         assertTrue(exception2.getMessage().contains("Address index"));
     }
@@ -264,8 +265,9 @@ class ConfigurableCoordIndexerTest {
                 .build();
 
         assertEquals(32, indexer.getMaxBitCapacity());
-        assertEquals(960, indexer.getMinX());
-        assertEquals(1000, indexer.getMinY());
+        // Safety margin of 2 is applied
+        assertEquals(960 + 2, indexer.getMinX());
+        assertEquals(1000 + 2, indexer.getMinY());
         assertEquals(4, indexer.getMaxAddressIndex());
     }
 
