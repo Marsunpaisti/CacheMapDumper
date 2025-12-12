@@ -256,12 +256,23 @@ public class Dumper {
                 BoatNavigationMapProcessor boatProcessor = new BoatNavigationMapProcessor(loadedCollisionMap, loadedTileTypeMap, format);
 
                 int totalStrips = boatProcessor.getTotalStrips();
-                ProgressBar boatProgressBar = new ProgressBar(totalStrips, 50);
-                boatProcessor.process(5, Runtime.getRuntime().availableProcessors(), boatProgressBar::update);
 
-                String boatNavPath = new ConfigManager().outputDir() + "boat_nav_5x5_" + formatSuffix + ".dat.gz";
-                boatProcessor.save(boatNavPath);
-                log.info("Wrote 5x5 boat navigation map to {}", boatNavPath);
+                // Generate 4x4 boat navigation map
+                log.info("Generating 4x4 boat navigation map...");
+                ProgressBar boatProgressBar4x4 = new ProgressBar(totalStrips, 50);
+                boatProcessor.process(4, Runtime.getRuntime().availableProcessors(), boatProgressBar4x4::update);
+                String boatNavPath4x4 = new ConfigManager().outputDir() + "boat_nav_4x4_" + formatSuffix + ".dat.gz";
+                boatProcessor.save(boatNavPath4x4);
+                log.info("Wrote 4x4 boat navigation map to {}", boatNavPath4x4);
+
+                // Generate 5x5 boat navigation map
+                log.info("Generating 5x5 boat navigation map...");
+                BoatNavigationMapProcessor boatProcessor5x5 = new BoatNavigationMapProcessor(loadedCollisionMap, loadedTileTypeMap, format);
+                ProgressBar boatProgressBar5x5 = new ProgressBar(totalStrips, 50);
+                boatProcessor5x5.process(5, Runtime.getRuntime().availableProcessors(), boatProgressBar5x5::update);
+                String boatNavPath5x5 = new ConfigManager().outputDir() + "boat_nav_5x5_" + formatSuffix + ".dat.gz";
+                boatProcessor5x5.save(boatNavPath5x5);
+                log.info("Wrote 5x5 boat navigation map to {}", boatNavPath5x5);
             } catch (Exception e) {
                 log.error("Failed to generate boat navigation map", e);
             }
