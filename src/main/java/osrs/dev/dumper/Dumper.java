@@ -57,6 +57,11 @@ public class Dumper {
     public static final String COLLISION_DIR = System.getProperty("user.home") + "/VitaX/cachedumper/";
     public static final String CACHE_DIR = COLLISION_DIR + "/cache/";
     public static final String XTEA_DIR = COLLISION_DIR + "/keys/";
+
+    // Object IDs that represent walkable floorboards - these should not be marked as water
+    private static final Set<Integer> WALKABLE_FLOORBOARD_IDS = Set.of(
+            270, 4747, 9453, 9454, 59923, 59924, 59926, 59927
+    );
     private final RegionLoader regionLoader;
     private final ObjectManager objectManager;
     private final OverlayManager overlayManager;
@@ -334,8 +339,28 @@ public class Dumper {
         int textureId = overlayDef.getTexture();
         Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
         if (tileType != null && tileType > 0) {
+            // Check for walkable floorboard objects - these should not be marked as water (Boat floors etc.)
+            if (hasWalkableFloorboardObject(region, regionX, regionY, effectivePlane)) {
+                return;
+            }
             tileTypeMapWriter.setTileType(regionX, regionY, plane, tileType);
         }
+    }
+
+    /**
+     * Checks if there is a walkable floorboard object at the given coordinate.
+     */
+    private boolean hasWalkableFloorboardObject(Region region, int regionX, int regionY, int plane) {
+        for (Location loc : region.getLocations()) {
+            Position pos = loc.getPosition();
+            if (pos.getX() != regionX || pos.getY() != regionY || pos.getZ() != plane) {
+                continue;
+            }
+            if (WALKABLE_FLOORBOARD_IDS.contains(loc.getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void processCollisionOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
