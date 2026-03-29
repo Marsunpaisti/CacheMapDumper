@@ -1,7 +1,10 @@
 package osrs.dev.dumper;
 
+import net.runelite.cache.EntityOpsDefinition;
 import net.runelite.cache.definitions.ObjectDefinition;
 import net.runelite.cache.region.Region;
+
+import java.util.List;
 
 /**
  * Static utility methods for tile and object processing logic.
@@ -112,13 +115,13 @@ public final class ProcessingUtils {
      * @return the matched action string, or null if no match
      */
     public static String getMatchedDoorLikeAction(ObjectDefinition obj) {
-        String[] actions = obj.getActions();
-        if (actions == null) return null;
-        for (String action : actions) {
-            if (action == null) continue;
+        List<EntityOpsDefinition.Op> ops = obj.getOps().getOps();
+        if (ops == null) return null;
+        for (EntityOpsDefinition.Op op : ops) {
+            if (op == null || op.text == null) continue;
             for (String doorAction : DOOR_LIKE_ACTIONS) {
-                if (action.equalsIgnoreCase(doorAction)) {
-                    return action;
+                if (op.text.equalsIgnoreCase(doorAction)) {
+                    return op.text;
                 }
             }
         }
