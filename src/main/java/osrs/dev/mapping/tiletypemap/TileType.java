@@ -6,6 +6,9 @@ import com.google.common.collect.ImmutableMap;
  * Flags for the different types of water tiles.
  */
 public class TileType {
+    // Boundary water that supports neither walking nor boat navigation.
+    public static final int NEVER_TRAVERSABLE_SPRITE_ID = 208;
+
     public static final byte WATER = 1;
     public static final byte CRANDOR_SMEGMA_WATER = 2;
     public static final byte TEMPOR_STORM_WATER = 3;

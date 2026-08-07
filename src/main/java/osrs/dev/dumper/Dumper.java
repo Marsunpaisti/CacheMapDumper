@@ -337,6 +337,10 @@ public class Dumper {
         }
 
         int textureId = overlayDef.getTexture();
+        if (textureId == TileType.NEVER_TRAVERSABLE_SPRITE_ID) {
+            return;
+        }
+
         Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
         if (tileType != null && tileType > 0) {
             // Check for walkable floorboard objects - these should not be marked as water (Boat floors etc.)
@@ -365,6 +369,12 @@ public class Dumper {
 
     private void processCollisionOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
         int tileZ = ProcessingUtils.getEffectiveTileZ(region, localX, localY, plane);
+        int effectivePlane = ProcessingUtils.getEffectivePlane(region, localX, localY, plane);
+
+        if (hasNeverTraversableFloorSprite(region, localX, localY, effectivePlane)) {
+            collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
+            return;
+        }
 
         // Keep some areas from Paisti's original map
         if (paistiMap != null && paistiMap.overrideTileCollisionIfApplicable(collisionMapWriter, regionX, regionY, plane)) {
@@ -460,10 +470,19 @@ public class Dumper {
         }
 
         // Handle tiles without a floor or with blocking floor types
-        int effectivePlane = ProcessingUtils.getEffectivePlane(region, localX, localY, plane);
         if (ProcessingUtils.isNoFloorOrBlockingFloor(region, localX, localY, effectivePlane)) {
             collisionMapWriter.fullBlocking(regionX, regionY, plane, true);
         }
+    }
+
+    private boolean hasNeverTraversableFloorSprite(Region region, int localX, int localY, int plane) {
+        int overlayId = region.getOverlayId(plane, localX, localY);
+        if (overlayId <= 0) {
+            return false;
+        }
+
+        OverlayDefinition overlayDef = findOverlay(overlayId - 1);
+        return overlayDef != null && overlayDef.getTexture() == TileType.NEVER_TRAVERSABLE_SPRITE_ID;
     }
 
     /**
