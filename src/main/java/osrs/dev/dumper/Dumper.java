@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 /**
  * Dumps collision data from the cache.
@@ -58,10 +59,6 @@ public class Dumper {
     public static final String CACHE_DIR = COLLISION_DIR + "/cache/";
     public static final String XTEA_DIR = COLLISION_DIR + "/keys/";
 
-    // Object IDs that represent walkable floorboards - these should not be marked as water
-    private static final Set<Integer> WALKABLE_FLOORBOARD_IDS = Set.of(
-            270, 4747, 9453, 9454, 59923, 59924, 59926, 59927
-    );
     private final RegionLoader regionLoader;
     private final ObjectManager objectManager;
     private final OverlayManager overlayManager;
@@ -202,31 +199,22 @@ public class Dumper {
 
             Collection<Region> regions = dumper.regionLoader.getRegions();
 
-            int total = regions.size();
-
-            ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-            List<Future<Void>> futures = new ArrayList<>();
-
-            for (Region region : regions) {
-                futures.add(executor.submit(() ->
-                {
-                    dumper.processRegion(region);
-                    return null;
-                }));
-            }
-
-            executor.shutdown();
-
-            int n = 0;
-            ProgressBar progressBar = new ProgressBar(total, 50);
-            for (Future<Void> future : futures) {
-                future.get(); // wait for task to complete
-                progressBar.update(++n);
-            }
+            processRegions(regions, dumper::processRegionCollision);
 
             log.info("Masked tiles read from Paisti map: {}", dumper.maskedTilesReadFromPaistiMap);
             dumper.collisionMapWriter.save(OUTPUT_MAP.getPath());
             log.info("Wrote collision map to {}", OUTPUT_MAP.getPath());
+            ICollisionMap loadedCollisionMap;
+            try {
+                loadedCollisionMap = CollisionMapFactory.load(OUTPUT_MAP.getPath());
+            } catch (Exception e) {
+                throw new IOException("Failed to load completed collision map for tile classification", e);
+            }
+            TileTypeClassifier tileTypeClassifier = new TileTypeClassifier(
+                    dumper.regionLoader::findRegionForWorldCoordinates, dumper.overlayManager::provide,
+                    loadedCollisionMap);
+            log.info("Classifying tile types with completed collision data...");
+            processRegions(regions, region -> dumper.processTileTypesOfRegion(region, tileTypeClassifier));
             dumper.tileTypeMapWriter.save(OUTPUT_TILE_TYPES.getPath());
             log.info("Wrote tile type map to {}", OUTPUT_TILE_TYPES.getPath());
 
@@ -254,7 +242,6 @@ public class Dumper {
             // Generate 5x5 boat navigation map using post-processed tile type map
             try {
                 log.info("Generating 5x5 boat navigation map...");
-                ICollisionMap loadedCollisionMap = CollisionMapFactory.load(OUTPUT_MAP.getPath());
                 String formatSuffix = format == CollisionMapFactory.Format.ROARING ? "roaring" : "sparse";
                 String postProcessedTileTypePath = optionsParser.getOutputDir() + "postprocessed_tile_types_" + formatSuffix + ".dat.gz";
                 TileTypeMap loadedTileTypeMap = TileTypeMapFactory.load(postProcessedTileTypePath);
@@ -298,7 +285,7 @@ public class Dumper {
      *
      * @param region the region
      */
-    private void processRegion(Region region) {
+    private void processRegionCollision(Region region) {
         int baseX = region.getBaseX();
         int baseY = region.getBaseY();
         for (int z = 0; z < Region.Z; z++) {
@@ -315,56 +302,46 @@ public class Dumper {
                     maxZ = Math.max(maxZ, z);
 
                     processCollisionOfRegionCoordinate(region, localX, localY, z, regionX, regionY);
-                    processTileTypesOfRegionCoordinate(region, localX, localY, z, regionX, regionY);
                 }
             }
         }
     }
 
-    private void processTileTypesOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
-        boolean isBridge = (region.getTileSetting(1, localX, localY) & 2) != 0;
-        int tileZ = plane + (isBridge ? 1 : 0);
-        int effectivePlane = plane < 3 ? tileZ : plane;
-
-        int overlayId = region.getOverlayId(effectivePlane, localX, localY);
-        if (overlayId <= 0) {
-            return;
-        }
-
-        OverlayDefinition overlayDef = findOverlay(overlayId - 1);
-        if (overlayDef == null) {
-            return;
-        }
-
-        int textureId = overlayDef.getTexture();
-        if (textureId == TileType.NEVER_TRAVERSABLE_SPRITE_ID) {
-            return;
-        }
-
-        Byte tileType = TileType.SPRITE_ID_TO_TILE_TYPE.get(textureId);
-        if (tileType != null && tileType > 0) {
-            // Check for walkable floorboard objects - these should not be marked as water (Boat floors etc.)
-            if (hasWalkableFloorboardObject(region, regionX, regionY, effectivePlane)) {
-                return;
+    private void processTileTypesOfRegion(Region region, TileTypeClassifier classifier) {
+        for (int plane = 0; plane < Region.Z; plane++) {
+            for (int localX = 0; localX < Region.X; localX++) {
+                int x = region.getBaseX() + localX;
+                for (int localY = 0; localY < Region.Y; localY++) {
+                    int y = region.getBaseY() + localY;
+                    byte tileType = classifier.getTileType(x, y, plane);
+                    if (tileType > 0) {
+                        tileTypeMapWriter.setTileType(x, y, plane, tileType);
+                    }
+                }
             }
-            tileTypeMapWriter.setTileType(regionX, regionY, plane, tileType);
         }
     }
 
-    /**
-     * Checks if there is a walkable floorboard object at the given coordinate.
-     */
-    private boolean hasWalkableFloorboardObject(Region region, int regionX, int regionY, int plane) {
-        for (Location loc : region.getLocations()) {
-            Position pos = loc.getPosition();
-            if (pos.getX() != regionX || pos.getY() != regionY || pos.getZ() != plane) {
-                continue;
+    private static void processRegions(Collection<Region> regions, Consumer<Region> processor)
+            throws ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        try {
+            List<Future<Void>> futures = new ArrayList<>();
+            for (Region region : regions) {
+                futures.add(executor.submit(() -> {
+                    processor.accept(region);
+                    return null;
+                }));
             }
-            if (WALKABLE_FLOORBOARD_IDS.contains(loc.getId())) {
-                return true;
+            int n = 0;
+            ProgressBar progressBar = new ProgressBar(regions.size(), 50);
+            for (Future<Void> future : futures) {
+                future.get(); // wait for task to complete
+                progressBar.update(++n);
             }
+        } finally {
+            executor.shutdown();
         }
-        return false;
     }
 
     private void processCollisionOfRegionCoordinate(Region region, int localX, int localY, int plane, int regionX, int regionY) {
