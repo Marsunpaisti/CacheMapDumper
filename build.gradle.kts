@@ -22,7 +22,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("org.projectlombok:lombok:1.18.24")
     annotationProcessor("org.projectlombok:lombok:1.18.24")
-    implementation(group = "net.runelite", name = "cache", version = "latest.release")
+    // Collision exports must use a reproducible cache decoder.
+    implementation(group = "net.runelite", name = "cache", version = "1.13.1")
     implementation("com.google.code.gson:gson:2.8.9")
     implementation("com.formdev:flatlaf:2.4")
     implementation("com.google.guava:guava:32.0.0-android")
@@ -38,6 +39,14 @@ dependencies {
 
 
 tasks {
+    register<JavaExec>("dumpFullCollision") {
+        group = "application"
+        description = "Export static 32-bit collision flags from an existing game cache"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.FullCollisionDumper")
+        maxHeapSize = "4g"
+    }
+
     register<Copy>("copyCompileDeps") {
         into("./build/deps/")
         from(configurations["compileClasspath"])
