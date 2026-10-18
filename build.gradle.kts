@@ -55,6 +55,14 @@ tasks {
         maxHeapSize = "1g"
     }
 
+    register<JavaExec>("dumpSprites") {
+        group = "application"
+        description = "Export every cache sprite as a PNG"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.SpriteDumper")
+        maxHeapSize = "1g"
+    }
+
     register<JavaExec>("dumpFullCollision") {
         group = "application"
         description = "Export static 32-bit collision flags from an existing game cache"

@@ -127,6 +127,23 @@ The exporter stages files and only publishes the directory after successful
 completion. Existing output is never overwritten. Definitions remain valid for
 the captured cache; new game items or balance changes still require a new export.
 
+## Sprites
+
+Export every sprite in an existing disk cache as a PNG:
+
+```powershell
+.\gradlew.bat dumpSprites
+.\gradlew.bat dumpSprites --args="--cache C:/caches/osrs/cache --output build/sprites-example"
+```
+
+Defaults: cache in `~/VitaX/cachedumper/cache/`, output in `build/sprites/`,
+which must not exist yet. Files are named `<sprite id>-<frame>.png` by
+RuneLite's `SpriteManager`, which skips empty frames; RuneLite's gameval
+`SpriteID` names the IDs. `manifest.json` records the decoder version, the
+sprite index revision and the frame count. The RuneLite cache library logs a
+"revision mismatch" warning for many sprite archives; the export is still
+complete.
+
 ## Viewer
 
 **UI Elements**<br />
