@@ -63,6 +63,14 @@ tasks {
         maxHeapSize = "1g"
     }
 
+    register<JavaExec>("dumpItemIcons") {
+        group = "application"
+        description = "Render every named item's inventory icon from its model"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.ItemIconDumper")
+        maxHeapSize = "2g"
+    }
+
     register<JavaExec>("dumpFullCollision") {
         group = "application"
         description = "Export static 32-bit collision flags from an existing game cache"

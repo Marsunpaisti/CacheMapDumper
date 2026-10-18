@@ -144,6 +144,25 @@ sprite index revision and the frame count. The RuneLite cache library logs a
 "revision mismatch" warning for many sprite archives; the export is still
 complete.
 
+## Item icons
+
+Inventory icons aren't stored in the cache: the client renders them from each
+item's model. Render every named item's icon the same way, with RuneLite's
+`ItemSpriteFactory`:
+
+```powershell
+.\gradlew.bat dumpItemIcons
+.\gradlew.bat dumpItemIcons --args="--cache C:/caches/osrs/cache --output build/item-icons-example"
+```
+
+Defaults: cache in `~/VitaX/cachedumper/cache/`, output in `build/item-icons/`,
+which must not exist yet. Files are named `<item id>.png`: 36x32 icons at
+quantity 1, with the inventory's black outline and shadow (the arguments
+RuneLite's own icon test uses). Stackable items whose icon changes with the
+stack size (coins, arrows) show their single-item icon. `manifest.json`
+records the decoder version, the model index revision, the icon count and the
+ids that failed to render.
+
 ## Viewer
 
 **UI Elements**<br />
