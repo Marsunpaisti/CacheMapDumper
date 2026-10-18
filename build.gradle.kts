@@ -47,6 +47,14 @@ tasks {
         maxHeapSize = "1g"
     }
 
+    register<JavaExec>("dumpNpcs") {
+        group = "application"
+        description = "Export all cache NPC definitions and animation timings"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.NpcDefinitionDumper")
+        maxHeapSize = "1g"
+    }
+
     register<JavaExec>("dumpFullCollision") {
         group = "application"
         description = "Export static 32-bit collision flags from an existing game cache"

@@ -94,6 +94,35 @@ item record means unknown stats. IDs are not canonicalized or filled from relate
 items. Stats are published separately from the cache, so their revisions may
 differ; the manifest records overlap without discarding unmatched IDs.
 
+## NPC definitions and animation timings
+
+Export every NPC definition and every animation (sequence) in an existing disk
+cache. No running client or XTEA keys are needed:
+
+```powershell
+.\gradlew.bat dumpNpcs
+.\gradlew.bat dumpNpcs --args="--cache C:/caches/osrs/cache --output build/npcs-example"
+```
+
+Defaults: cache in `~/VitaX/cachedumper/cache/`, output in `build/npcs/`. The
+output directory must not exist yet. Each export contains:
+
+- **`npc-definitions.json`**: `schemaVersion: 1`, with an `npcs` object keyed by
+  decimal NPC ID, ordered numerically, holding every field decoded by RuneLite
+  1.13.1 unchanged. `stats` is `[attack, defence, strength, hitpoints, ranged,
+  magic]`; `params` holds the server params the cache ships (attack and defence
+  bonuses and similar, keyed by param ID).
+- **`sequences.json`**: `schemaVersion: 1`, with a `sequences` object keyed by
+  animation ID: the fields that time an animation (`frameLengths` in 20 ms
+  client cycles, `frameStep`, `maxLoops`, `replyMode`, priorities, and the
+  skeletal `animMaya*` fields) plus `lengthClientCycles`, their sum. Death
+  animations usually end on a very long frame that holds the last pose until
+  the NPC despawns, so read `frameLengths` for the visible length. Frame sounds
+  are left out.
+- **`manifest.json`**: decoder version, generation time, cache index and
+  archive revisions, archive SHA-256s, counts, and output sizes and SHA-256
+  checksums.
+
 The exporter stages files and only publishes the directory after successful
 completion. Existing output is never overwritten. Definitions remain valid for
 the captured cache; new game items or balance changes still require a new export.
