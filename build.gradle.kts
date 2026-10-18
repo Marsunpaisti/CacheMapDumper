@@ -22,7 +22,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("org.projectlombok:lombok:1.18.24")
     annotationProcessor("org.projectlombok:lombok:1.18.24")
-    // Collision exports must use a reproducible cache decoder.
+    // Cache exports must use a reproducible decoder; also recorded by ItemDefinitionDumper.
     implementation(group = "net.runelite", name = "cache", version = "1.13.1")
     implementation("com.google.code.gson:gson:2.8.9")
     implementation("com.formdev:flatlaf:2.4")
@@ -39,6 +39,14 @@ dependencies {
 
 
 tasks {
+    register<JavaExec>("dumpItems") {
+        group = "application"
+        description = "Export all cache item definitions and RuneLite item/equipment stats"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.ItemDefinitionDumper")
+        maxHeapSize = "1g"
+    }
+
     register<JavaExec>("dumpFullCollision") {
         group = "application"
         description = "Export static 32-bit collision flags from an existing game cache"

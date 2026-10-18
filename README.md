@@ -39,6 +39,65 @@ blocking bits; legacy floor heuristics and Paisti-area overrides do not apply.
 See [the format and collision rules](docs/full-collision-format.md) for native
 reader details, region coverage, and limitations.
 
+## Item definitions and equipment stats
+
+Export every item in an existing disk cache, plus the full published RuneLite
+item-stats dataset. No running client or XTEA keys are needed:
+
+```powershell
+.\gradlew.bat dumpItems
+```
+
+Defaults: cache in `~/VitaX/cachedumper/cache/`, output in `build/items/`.
+Stats download automatically from
+`https://static.runelite.net/item/stats.ids.min.json`. The cache itself is not
+downloaded or updated. Choose an unused output directory for subsequent runs:
+
+```powershell
+.\gradlew.bat dumpItems --args="--cache C:/caches/osrs/cache --output build/items-example"
+```
+
+For a fully offline run, supply a previously saved stats file:
+
+```powershell
+.\gradlew.bat dumpItems --args="--item-stats build/items/item-stats.json --output build/items-offline"
+```
+
+After `gradlew.bat build`, the standalone entrypoint is also in the shaded JAR:
+
+```powershell
+java -Xmx1g -cp build/libs/CacheMapDumper-1.0-SNAPSHOT-shaded.jar osrs.dev.dumper.ItemDefinitionDumper --output build/items-another
+```
+
+Each export contains:
+
+- **`item-definitions.json`**: `schemaVersion: 1`, with `raw` and `linked`
+  objects keyed by decimal item ID, ordered numerically. Both retain every field
+  decoded by RuneLite 1.13.1, including nulls, actions, equipment positions,
+  models, recolours, item relationships, and arbitrary params. `raw` means
+  decoded before `ItemManager.link()`, not the original binary. `linked` applies
+  note, bought-variant, and placeholder transformations; use it for stackability.
+  Field names and types are RuneLite's unchanged: `stackable` is an integer,
+  with `1` meaning stackable, not a JSON boolean.
+- **`item-stats.json`**: the complete source JSON, preserved byte-for-byte,
+  keyed by item ID. Includes published weight, equipability, equipment slot,
+  attack/defence bonuses, strength/ranged-strength/magic-damage/prayer bonuses,
+  attack speed, two-handed status, and GE limits. Unknown fields are retained.
+- **`manifest.json`**: decoder version, generation time, cache index/archive
+  revisions, item-archive SHA-256, stats source, coverage counts, and output sizes
+  and SHA-256 checksums. The archive revision is not the game's revision number.
+
+For example, a reader looks up `definitions.linked["995"].stackable` and
+`stats["4151"].equipment.aspeed`. RuneLite's stats are sparse: omitted numerical
+bonus fields within an existing equipment record default to zero, but an absent
+item record means unknown stats. IDs are not canonicalized or filled from related
+items. Stats are published separately from the cache, so their revisions may
+differ; the manifest records overlap without discarding unmatched IDs.
+
+The exporter stages files and only publishes the directory after successful
+completion. Existing output is never overwritten. Definitions remain valid for
+the captured cache; new game items or balance changes still require a new export.
+
 ## Viewer
 
 **UI Elements**<br />
