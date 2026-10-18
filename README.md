@@ -163,6 +163,35 @@ stack size (coins, arrows) show their single-item icon. `manifest.json`
 records the decoder version, the model index revision, the icon count and the
 ids that failed to render.
 
+## NPC images
+
+NPCs have no pictures in the cache either. Render a still of every named NPC
+from its models:
+
+```powershell
+.\gradlew.bat dumpNpcImages
+.\gradlew.bat dumpNpcImages --args="--output build/npc-images-example --ids 3116,3127"
+```
+
+Defaults: cache in `~/VitaX/cachedumper/cache/`, output in `build/npc-images/`,
+which must not exist yet, every NPC. Files are named `<npc id>.png`.
+
+How each NPC is rendered (`NpcSpriteFactory`):
+- its models are merged, recoloured, retextured, scaled and lit as the client
+  builds an NPC;
+- it's posed in the first frame of its standing animation; skeletal ("maya")
+  animations aren't applied;
+- it's drawn by RuneLite's item icon renderer, 45 degrees from above and facing
+  the viewer, in a 128 pixel square;
+- the picture is then cropped to the pixels drawn.
+
+Two departures from the game's look:
+- translucent faces are drawn solid, or mostly translucent NPCs such as the
+  Tz-Kih all but vanish;
+- NPCs that draw nothing get no file.
+
+`manifest.json` records the camera, the image count and any failures.
+
 ## Viewer
 
 **UI Elements**<br />

@@ -71,6 +71,14 @@ tasks {
         maxHeapSize = "2g"
     }
 
+    register<JavaExec>("dumpNpcImages") {
+        group = "application"
+        description = "Render a still picture of every named NPC from its models"
+        classpath = sourceSets.main.get().runtimeClasspath
+        mainClass.set("osrs.dev.dumper.NpcImageDumper")
+        maxHeapSize = "2g"
+    }
+
     register<JavaExec>("dumpFullCollision") {
         group = "application"
         description = "Export static 32-bit collision flags from an existing game cache"
