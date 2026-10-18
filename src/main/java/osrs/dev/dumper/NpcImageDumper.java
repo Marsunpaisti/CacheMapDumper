@@ -8,10 +8,12 @@ import net.runelite.cache.SpriteManager;
 import net.runelite.cache.TextureManager;
 import net.runelite.cache.definitions.FrameDefinition;
 import net.runelite.cache.definitions.FramemapDefinition;
+import net.runelite.cache.definitions.KitDefinition;
 import net.runelite.cache.definitions.NpcDefinition;
 import net.runelite.cache.definitions.SequenceDefinition;
 import net.runelite.cache.definitions.loaders.FrameLoader;
 import net.runelite.cache.definitions.loaders.FramemapLoader;
+import net.runelite.cache.definitions.loaders.KitLoader;
 import net.runelite.cache.definitions.loaders.ModelLoader;
 import net.runelite.cache.definitions.loaders.SequenceLoader;
 import net.runelite.cache.definitions.providers.ModelProvider;
@@ -44,12 +46,17 @@ import java.util.stream.Stream;
  * A still picture of every named NPC with models: <npc id>.png, its models merged and lit as the client builds the
  * NPC, in the first frame of its standing animation, seen from the front and above, cut to the pixels drawn
  * (NpcSpriteFactory). Skeletal ("maya") standing animations aren't applied; NPCs that draw nothing get no picture.
+ * Also player.png, a default player drawn the same way: the first selectable male kit of each body part, standing.
  */
 public final class NpcImageDumper {
     private static final int SIZE = 128;
     // In the client's 2048 units to a circle: 45 degrees above level, turned to face the viewer.
     private static final int PITCH = 256;
     private static final int YAW = 0;
+    // The player's idle animation.
+    private static final int PLAYER_STANDING_ANIMATION = 808;
+    // A male player's body parts: hair, jaw, torso, arms, hands, legs, feet (female ones are 7 to 13).
+    private static final int MALE_BODY_PARTS = 7;
 
     private NpcImageDumper() {}
 
@@ -139,6 +146,13 @@ public final class NpcImageDumper {
                         System.err.printf("NPC %d (%s): %s%n", npc.id, npc.name, cause);
                     }
                 }
+                List<Integer> kits = new ArrayList<>();
+                NpcDefinition player = defaultPlayer(store, kits);
+                BufferedImage playerImage = NpcSpriteFactory.render(player, modelProvider, sprites, textures,
+                        poses.firstFrame(PLAYER_STANDING_ANIMATION), SIZE, PITCH, YAW);
+                if (playerImage == null) throw new IOException("The default player draws nothing");
+                ImageIO.write(playerImage, "PNG", staging.resolve("player.png").toFile());
+                manifest.put("playerKits", kits);
             }
             manifest.put("imageCount", rendered);
             manifest.put("failedNpcIds", failed);
@@ -157,6 +171,52 @@ public final class NpcImageDumper {
                 }
             }
         }
+    }
+
+    /** A default male player as an NPC: the first selectable kit of each body part, recoloured as the kits say. */
+    private static NpcDefinition defaultPlayer(Store store, List<Integer> chosenKits) throws IOException {
+        Archive archive = store.getIndex(IndexType.CONFIGS).getArchive(ConfigType.IDENTKIT.getId());
+        KitDefinition[] chosen = new KitDefinition[MALE_BODY_PARTS];
+        List<FSFile> files = new ArrayList<>(archive.getFiles(store.getStorage().loadArchive(archive)).getFiles());
+        files.sort(Comparator.comparingInt(FSFile::getFileId));
+        for (FSFile file : files) {
+            KitDefinition kit = new KitLoader().load(file.getFileId(), file.getContents());
+            int part = kit.bodyPartId;
+            if (part < 0 || part >= MALE_BODY_PARTS || kit.nonSelectable || kit.models == null || chosen[part] != null) {
+                continue;
+            }
+            chosen[part] = kit;
+        }
+        List<Integer> models = new ArrayList<>();
+        List<Short> find = new ArrayList<>();
+        List<Short> replace = new ArrayList<>();
+        for (KitDefinition kit : chosen) {
+            if (kit == null) continue;
+            chosenKits.add(kit.getId());
+            for (int model : kit.models) models.add(model);
+            if (kit.recolorToFind != null) {
+                for (int i = 0; i < kit.recolorToFind.length; ++i) {
+                    find.add(kit.recolorToFind[i]);
+                    replace.add(kit.recolorToReplace[i]);
+                }
+            }
+        }
+        NpcDefinition player = new NpcDefinition(-1);
+        player.name = "Player";
+        player.models = models.stream().mapToInt(Integer::intValue).toArray();
+        if (!find.isEmpty()) {
+            player.recolorToFind = new short[find.size()];
+            player.recolorToReplace = new short[find.size()];
+            for (int i = 0; i < find.size(); ++i) {
+                player.recolorToFind[i] = find.get(i);
+                player.recolorToReplace[i] = replace.get(i);
+            }
+        }
+        player.widthScale = 128;
+        player.heightScale = 128;
+        player.ambient = 0;
+        player.contrast = 0;
+        return player;
     }
 
     /** Loads animation frames from the cache, remembering their archives and skeletons. */

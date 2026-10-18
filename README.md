@@ -190,7 +190,11 @@ Two departures from the game's look:
   Tz-Kih all but vanish;
 - NPCs that draw nothing get no file.
 
-`manifest.json` records the camera, the image count and any failures.
+The export also holds `player.png`, a default male player drawn the same way:
+the first selectable kit of each body part, standing (animation 808).
+
+`manifest.json` records the camera, the image count, the player's kits and any
+failures.
 
 ## Viewer
 
