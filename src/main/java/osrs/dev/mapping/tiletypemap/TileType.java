@@ -51,6 +51,7 @@ public class TileType {
             .put(159, NE_PURPLE_GRAY_WATER)
             .put(160, ICE_WATER)
             .put(161, ICE_WATER)
+            .put(162, ICE_WATER)
             .put(163, ICE_WATER)
             .put(164, ICE_WATER)
             .put(165, NW_GRAY_WATER)
